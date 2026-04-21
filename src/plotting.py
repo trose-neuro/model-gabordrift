@@ -58,7 +58,7 @@ def plot_parameter_distributions(population: pd.DataFrame, path: str | Path) -> 
     """Plot sampled RF and retinotopy parameter distributions."""
     fig, axes = plt.subplots(2, 3, figsize=(10.5, 6.2))
     fields = [
-        ("theta0_deg", "Preferred orientation (deg)"),
+        ("theta0_deg", "PO (deg)"),
         ("f0_cpd", "Preferred SF (cpd)"),
         ("sigma_x_deg", "RF sigma x (deg)"),
         ("sigma_y_deg", "RF sigma y (deg)"),
@@ -158,7 +158,7 @@ def plot_tuning_examples(
 def plot_summary_bars(summary: pd.DataFrame, path: str | Path) -> None:
     """Plot condition-level summary bars for decomposition or model comparison."""
     metrics = [
-        "median_abs_op_shift_deg",
+        "median_abs_delta_po_deg",
         "population_response_correlation",
         "rdm_similarity_to_baseline",
         "median_tuning_strength_change",

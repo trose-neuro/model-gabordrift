@@ -13,7 +13,7 @@ def methods_summary_text(config: dict) -> str:
     gaze = config["gaze"]
     return f"""# Methods Summary
 
-This first-pass null model simulates {n} L2/3-like units sampled uniformly in a {size:.0f} x {size:.0f} um V1 imaging field. Cortical positions are mapped to visual RF centers by a configurable local linear retinotopic transform with Gaussian cell-to-cell scatter. Each unit has a single Gabor-like receptive field with sampled orientation preference, spatial-frequency preference, RF envelope widths, phase, gain, baseline, and static nonlinearity.
+This first-pass null model simulates {n} L2/3-like units sampled uniformly in a {size:.0f} x {size:.0f} um V1 imaging field. Cortical positions are mapped to visual RF centers by a configurable local linear retinotopic transform with Gaussian cell-to-cell scatter. Each unit has a single Gabor-like receptive field with sampled PO, spatial-frequency preference, RF envelope widths, phase, gain, baseline, and static nonlinearity.
 
 Full-field gratings are evaluated with a Gabor-inspired analytic response model that separates orientation/SF matching from gaze-dependent phase. Natural-image responses are evaluated by applying sampled Gabor kernels to preprocessed grayscale images. If no image folder is provided, the pipeline uses procedural naturalistic images so the project remains runnable.
 
@@ -37,23 +37,23 @@ def interpretation_text(
     lines = [
         "# Interpretation Summary",
         "",
-        f"At the largest simulated offset in this run ({far_g['gaze_az_deg']:.2f}, {far_g['gaze_el_deg']:.2f}) deg, the median absolute inferred OP shift was {far_g['median_abs_op_shift_deg']:.2f} deg and the 90th percentile was {far_g['p90_abs_op_shift_deg']:.2f} deg.",
-        f"The median tuning-strength change was {far_g['median_tuning_strength_change']:.3f}; this distinguishes OP rotation from tuning flattening or sharpening.",
+        f"At the largest simulated offset in this run ({far_g['gaze_az_deg']:.2f}, {far_g['gaze_el_deg']:.2f}) deg, the median absolute inferred ΔPO was {far_g['median_abs_delta_po_deg']:.2f} deg and the 90th percentile was {far_g['p90_abs_delta_po_deg']:.2f} deg.",
+        f"The median tuning-strength change was {far_g['median_tuning_strength_change']:.3f}; this distinguishes PO rotation from tuning flattening or sharpening.",
         f"For natural images at the same edge of the grid, population response correlation to baseline was {far_n['population_response_correlation']:.3f}, RDM similarity was {far_n['rdm_similarity_to_baseline']:.3f}, and the median relative per-neuron response change was {far_n['median_relative_response_change']:.3f}.",
         "",
         "Under this model, gaze matters little when RFs are broad, phase is averaged or an energy model is used, mapping is accurate, and SNR is high. Gaze matters more when RFs are narrow, high-SF units are common, phase-sensitive simple-cell responses are estimated from limited phases, or natural images contain local structure that translates across RF subfields.",
         "",
-        "Mapping errors matter when approximate projection, wrong scale, origin offsets, rotation mismatch, or nonlinear distortion produce systematic phase and position errors comparable to the RF subfield scale. Low SNR dominates when repeated-trial averaging and bootstrap intervals show large OP uncertainty even at zero or small gaze offsets.",
+        "Mapping errors matter when approximate projection, wrong scale, origin offsets, rotation mismatch, or nonlinear distortion produce systematic phase and position errors comparable to the RF subfield scale. Low SNR dominates when repeated-trial averaging and bootstrap intervals show large PO uncertainty even at zero or small gaze offsets.",
     ]
     if decomposition_table is not None and not decomposition_table.empty:
         edge = decomposition_table.sort_values("summary_radius").groupby("condition").tail(1)
         lines.extend(["", "Decomposition at the largest analyzed offsets:"])
         for row in edge.itertuples(index=False):
             lines.append(
-                f"- {row.condition}: median |dOP| {row.median_abs_op_shift_deg:.2f} deg, natural-image correlation {row.population_response_correlation:.3f}, RDM similarity {row.rdm_similarity_to_baseline:.3f}."
+                f"- {row.condition}: median |ΔPO| {row.median_abs_delta_po_deg:.2f} deg, natural-image correlation {row.population_response_correlation:.3f}, RDM similarity {row.rdm_similarity_to_baseline:.3f}."
             )
     lines.append("")
     lines.append(
-        "Natural images are considered more gaze-sensitive than gratings here when their population correlation or RDM similarity drops substantially while grating OP shifts remain small. That pattern is expected because translating a structured image can change RF drive without necessarily changing the orientation that best fits grating responses."
+        "Natural images are considered more gaze-sensitive than gratings here when their population correlation or RDM similarity drops substantially while grating ΔPO remains small. That pattern is expected because translating a structured image can change RF drive without necessarily changing the PO that best fits grating responses."
     )
     return "\n".join(lines) + "\n"

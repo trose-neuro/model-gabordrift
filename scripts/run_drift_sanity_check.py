@@ -80,12 +80,12 @@ def main() -> None:
     table.to_csv(out_path, index=False)
 
     plt.figure(figsize=(7.2, 4.5))
-    sns.lineplot(data=table, x="drift_deg", y="median_abs_op_shift_deg", hue="drift_path", marker="o")
-    plt.axhline(config["analysis"]["op_large_shift_threshold_deg"], color="0.35", lw=1, ls="--")
+    sns.lineplot(data=table, x="drift_deg", y="median_abs_delta_po_deg", hue="drift_path", marker="o")
+    plt.axhline(config["analysis"].get("po_large_shift_threshold_deg", 10.0), color="0.35", lw=1, ls="--")
     plt.xlabel("FOV/gaze drift magnitude (deg)")
-    plt.ylabel("Median |dOP| (deg)")
+    plt.ylabel("Median |ΔPO| (deg)")
     plt.title("Focused 1-10 degree drift sanity check")
-    savefig(paths["figures"] / "drift_sanity_median_abs_op_shift.png")
+    savefig(paths["figures"] / "drift_sanity_median_abs_delta_po.png")
 
     if args.include_natural:
         plt.figure(figsize=(7.2, 4.5))

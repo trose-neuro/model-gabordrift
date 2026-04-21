@@ -11,6 +11,6 @@ def test_orientation_estimation_recovers_synthetic_peak():
     responses = np.zeros((1, len(orientations), len(sfs)))
     responses[0, :, 1] = tuning
     estimate = estimate_orientation_tuning(responses, orientations, sfs)
-    assert abs(((estimate["preferred_orientation_deg"][0] - 40 + 90) % 180) - 90) < 2
+    assert abs(((estimate["po_deg"][0] - 40 + 90) % 180) - 90) < 2
     assert estimate["best_spatial_frequency_cpd"][0] == 0.08
     assert estimate["orientation_selectivity"][0] > 0.5

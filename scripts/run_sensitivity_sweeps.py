@@ -46,12 +46,12 @@ def main() -> None:
     plt.figure(figsize=(7.2, 4.5))
     sns.scatterplot(
         data=table,
-        x="median_abs_op_shift_deg",
+        x="median_abs_delta_po_deg",
         y="median_relative_response_change",
         hue="condition",
         s=80,
     )
-    plt.xlabel("Median |dOP| at far offset (deg)")
+    plt.xlabel("Median |ΔPO| at far offset (deg)")
     plt.ylabel("Median natural-image relative response change")
     plt.title("Parameter sweep bridge summary")
     plt.legend(frameon=False, fontsize=8, bbox_to_anchor=(1.02, 1), loc="upper left")

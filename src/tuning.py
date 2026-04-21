@@ -26,7 +26,7 @@ def estimate_orientation_tuning(
     orientations_deg: np.ndarray,
     spatial_frequencies_cpd: np.ndarray,
 ) -> dict[str, np.ndarray]:
-    """Estimate OP, best SF, circular variance, and vector strength.
+    """Estimate PO, best SF, circular variance, and vector strength.
 
     Parameters
     ----------
@@ -57,7 +57,7 @@ def estimate_orientation_tuning(
     best_ori_idx = np.nanargmax(tuning, axis=1)
 
     return {
-        "preferred_orientation_deg": pref,
+        "po_deg": pref,
         "best_spatial_frequency_cpd": sfs[best_sf_idx],
         "best_orientation_grid_deg": orientations[best_ori_idx],
         "orientation_selectivity": vector_strength,
@@ -92,7 +92,7 @@ def bootstrap_orientation_ci(
     for idx in range(int(n_bootstrap)):
         sample_idx = rng.integers(0, repeats, size=repeats)
         estimate = estimate_orientation_tuning(np.mean(trials[sample_idx], axis=0), orientations_deg, spatial_frequencies_cpd)
-        pref_samples[idx] = estimate["preferred_orientation_deg"]
+        pref_samples[idx] = estimate["po_deg"]
         cv_samples[idx] = estimate["circular_variance"]
 
     center = circular_mean_deg(pref_samples, period=180.0)
@@ -101,7 +101,7 @@ def bootstrap_orientation_ci(
     pref_high = np.nanpercentile(pref_samples, 97.5, axis=0)
     pref_width = np.abs(circular_difference_deg(pref_high, pref_low, period=180.0))
     return {
-        "preferred_orientation_ci_width_deg": pref_width,
+        "po_ci_width_deg": pref_width,
         "circular_variance_ci_width": np.nanpercentile(cv_samples, 97.5, axis=0)
         - np.nanpercentile(cv_samples, 2.5, axis=0),
     }

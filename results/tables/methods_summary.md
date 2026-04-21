@@ -1,6 +1,6 @@
 # Methods Summary
 
-This first-pass null model simulates 160 L2/3-like units sampled uniformly in a 500 x 500 um V1 imaging field. Cortical positions are mapped to visual RF centers by a configurable local linear retinotopic transform with Gaussian cell-to-cell scatter. Each unit has a single Gabor-like receptive field with sampled orientation preference, spatial-frequency preference, RF envelope widths, phase, gain, baseline, and static nonlinearity.
+This first-pass null model simulates 160 L2/3-like units sampled uniformly in a 500 x 500 um V1 imaging field. Cortical positions are mapped to visual RF centers by a configurable local linear retinotopic transform with Gaussian cell-to-cell scatter. Each unit has a single Gabor-like receptive field with sampled PO, spatial-frequency preference, RF envelope widths, phase, gain, baseline, and static nonlinearity.
 
 Full-field gratings are evaluated with a Gabor-inspired analytic response model that separates orientation/SF matching from gaze-dependent phase. Natural-image responses are evaluated by applying sampled Gabor kernels to preprocessed grayscale images. If no image folder is provided, the pipeline uses procedural naturalistic images so the project remains runnable.
 

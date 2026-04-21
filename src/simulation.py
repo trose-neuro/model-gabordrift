@@ -82,7 +82,7 @@ def run_grating_shift_grid(
     """Run grating tuning estimation for all gaze shifts."""
     stimuli = make_grating_stimuli(config)
     shifts = make_gaze_grid(config) if shifts is None else shifts.copy()
-    threshold = float(config["analysis"]["op_large_shift_threshold_deg"])
+    threshold = float(config["analysis"].get("po_large_shift_threshold_deg", 10.0))
 
     baseline_mean, baseline_trials = grating_response_mean(
         population,
@@ -298,21 +298,21 @@ def make_primary_figures(
     fig_dir = paths["figures"]
     heatmap_from_table(
         grating_summary,
-        "median_abs_op_shift_deg",
-        fig_dir / "primary_01_median_abs_op_shift.png",
-        title="Median absolute OP shift",
+        "median_abs_delta_po_deg",
+        fig_dir / "primary_01_median_abs_delta_po.png",
+        title="Median absolute ΔPO",
     )
     heatmap_from_table(
         grating_summary,
-        "p90_abs_op_shift_deg",
-        fig_dir / "primary_02_p90_abs_op_shift.png",
-        title="90th percentile absolute OP shift",
+        "p90_abs_delta_po_deg",
+        fig_dir / "primary_02_p90_abs_delta_po.png",
+        title="90th percentile absolute ΔPO",
     )
     heatmap_from_table(
         grating_summary,
-        "fraction_abs_op_shift_gt_threshold",
-        fig_dir / "primary_03_fraction_op_shift_gt_10deg.png",
-        title="Fraction of neurons with |dOP| > threshold",
+        "fraction_abs_delta_po_gt_threshold",
+        fig_dir / "primary_03_fraction_delta_po_gt_10deg.png",
+        title="Fraction of neurons with |ΔPO| > threshold",
     )
     heatmap_from_table(
         grating_summary,
@@ -365,11 +365,11 @@ def make_secondary_figures(
     changes = far["neuron_changes"]
 
     plt.figure(figsize=(5.6, 3.8))
-    sns.histplot(changes["abs_op_shift_deg"], bins=24, color="#4C78A8")
-    plt.xlabel("|dOP| (deg)")
+    sns.histplot(changes["abs_delta_po_deg"], bins=24, color="#4C78A8")
+    plt.xlabel("|ΔPO| (deg)")
     plt.ylabel("Neurons")
-    plt.title(f"OP shifts at gaze {far['gaze'][0]:.1f}, {far['gaze'][1]:.1f} deg")
-    savefig(fig_dir / "secondary_hist_abs_op_shift_far_offset.png")
+    plt.title(f"ΔPO at gaze {far['gaze'][0]:.1f}, {far['gaze'][1]:.1f} deg")
+    savefig(fig_dir / "secondary_hist_abs_delta_po_far_offset.png")
 
     plt.figure(figsize=(5.6, 3.8))
     sns.histplot(changes["circular_variance_change"], bins=24, color="#F58518")
@@ -380,18 +380,18 @@ def make_secondary_figures(
 
     mean_rf_size = 0.5 * (population["sigma_x_deg"].to_numpy() + population["sigma_y_deg"].to_numpy())
     plt.figure(figsize=(5.7, 4.1))
-    plt.scatter(mean_rf_size, changes["abs_op_shift_deg"], s=13, alpha=0.65)
+    plt.scatter(mean_rf_size, changes["abs_delta_po_deg"], s=13, alpha=0.65)
     plt.xlabel("Mean RF sigma (deg)")
-    plt.ylabel("|dOP| (deg)")
-    plt.title("OP shift versus RF size")
-    savefig(fig_dir / "secondary_scatter_op_shift_vs_rf_size.png")
+    plt.ylabel("|ΔPO| (deg)")
+    plt.title("ΔPO versus RF size")
+    savefig(fig_dir / "secondary_scatter_delta_po_vs_rf_size.png")
 
     plt.figure(figsize=(5.7, 4.1))
-    plt.scatter(population["f0_cpd"], changes["abs_op_shift_deg"], s=13, alpha=0.65)
+    plt.scatter(population["f0_cpd"], changes["abs_delta_po_deg"], s=13, alpha=0.65)
     plt.xlabel("Preferred SF (cpd)")
-    plt.ylabel("|dOP| (deg)")
-    plt.title("OP shift versus preferred SF")
-    savefig(fig_dir / "secondary_scatter_op_shift_vs_sf.png")
+    plt.ylabel("|ΔPO| (deg)")
+    plt.title("ΔPO versus preferred SF")
+    savefig(fig_dir / "secondary_scatter_delta_po_vs_sf.png")
 
     plt.figure(figsize=(5.7, 4.1))
     plt.scatter(mean_rf_size, changes["tuning_strength_change"], s=13, alpha=0.65)
@@ -407,15 +407,15 @@ def make_secondary_figures(
         np.sqrt(np.mean(baseline_nat**2, axis=0)) + 1e-9
     )
     plt.figure(figsize=(5.7, 4.1))
-    plt.scatter(changes["abs_op_shift_deg"], natural_change, s=13, alpha=0.65)
-    plt.xlabel("|dOP| at far offset (deg)")
+    plt.scatter(changes["abs_delta_po_deg"], natural_change, s=13, alpha=0.65)
+    plt.xlabel("|ΔPO| at far offset (deg)")
     plt.ylabel("Natural-image relative change")
-    plt.title(f"Bridge sensitivity r={safe_corrcoef(changes['abs_op_shift_deg'], natural_change):.2f}")
+    plt.title(f"Bridge sensitivity r={safe_corrcoef(changes['abs_delta_po_deg'], natural_change):.2f}")
     savefig(fig_dir / "secondary_scatter_natural_vs_grating_sensitivity.png")
 
     baseline_tuning = grating_result["baseline_tuning"]["tuning_curve"]
     shifted_tuning = far["tuning"]["tuning_curve"]
-    selected = np.argsort(changes["abs_op_shift_deg"])
+    selected = np.argsort(changes["abs_delta_po_deg"])
     neuron_ids = [int(selected[0]), int(selected[len(selected) // 2]), int(selected[-1])]
     plot_tuning_examples(
         baseline_tuning,

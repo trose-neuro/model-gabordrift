@@ -103,7 +103,7 @@ noise:
   clip_nonnegative: true
 
 analysis:
-  op_large_shift_threshold_deg: 10.0
+  po_large_shift_threshold_deg: 10.0
   natural_large_change_threshold: 0.5
   bootstrap_samples: 200
   selected_offsets_deg:

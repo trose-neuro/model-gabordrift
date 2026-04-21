@@ -2,7 +2,7 @@
 
 This project is a reproducible first-pass null model for the question:
 
-**How much change in inferred orientation preference should be expected from gaze shifts alone in mouse V1 L2/3, and are natural-image responses more sensitive to gaze than grating tuning?**
+**How much change in inferred PO should be expected from gaze shifts alone in mouse V1 L2/3, and are natural-image responses more sensitive to gaze than grating tuning?**
 
 The simulation builds a 500 x 500 um two-photon field of view, samples mouse-V1-like Gabor receptive fields, maps cells into visual coordinates with local retinotopy plus jitter, and compares grating tuning with natural-image population responses under global gaze shifts.
 
@@ -74,7 +74,7 @@ Each neuron has:
 
 - cortical position in a 500 x 500 um FOV
 - RF center from a configurable local retinotopic map plus Gaussian jitter
-- preferred orientation in [0, 180) degrees
+- PO in [0, 180) degrees
 - preferred spatial frequency
 - RF envelope widths
 - Gabor phase
@@ -139,14 +139,14 @@ Generated outputs are written to:
 - `results/arrays/`: compressed arrays for selected responses/images
 - `results/tables/`: CSV summaries plus `methods_summary.md` and `interpretation_summary.md`
 
-Primary figures include heat maps for median and 90th percentile OP shift, fraction of neurons above the OP-shift threshold, circular-variance change, tuning-strength change, natural-image response correlation, RDM similarity, response-change magnitude, grating versus natural-image summaries, decomposition summaries, and simple-cell versus energy-model summaries.
+Primary figures include heat maps for median and 90th percentile `|ΔPO|`, fraction of neurons above the `|ΔPO|` threshold, circular-variance change, tuning-strength change, natural-image response correlation, RDM similarity, response-change magnitude, grating versus natural-image summaries, decomposition summaries, and simple-cell versus energy-model summaries.
 
 ## Notebooks
 
 Run notebooks only after activating `gaze_v1_sim`.
 
 - `01_model_setup_and_sampling.ipynb`: cortical sampling, retinotopy, mapping, RF distributions, RF examples
-- `02_grating_tuning_and_op_estimation.ipynb`: grating responses, OP estimation, circular variance, simple versus energy model
+- `02_grating_tuning_and_po_estimation.ipynb`: grating responses, PO estimation, circular variance, simple versus energy model
 - `03_gaze_shift_heatmaps.ipynb`: grating gaze-shift heat maps and example tuning changes
 - `04_natural_images_comparison.ipynb`: natural-image responses, correlations, RDMs, grating comparison
 - `05_noise_and_mapping_error_effects.ipynb`: decomposition of geometry, mapping error, and SNR
@@ -156,10 +156,10 @@ Run notebooks only after activating `gaze_v1_sim`.
 
 The generated interpretation summary addresses:
 
-1. when gaze causes substantial OP shifts
-2. when gaze mainly flattens tuning rather than rotating OP
+1. when gaze causes substantial `ΔPO`
+2. when gaze mainly flattens tuning rather than rotating PO
 3. how much instability mapping error explains alone
-4. how much apparent OP instability low SNR explains alone
+4. how much apparent PO instability low SNR explains alone
 5. whether natural images are more sensitive than gratings
 6. which assumptions make gaze effects large enough to matter for mouse V1 experiments
 

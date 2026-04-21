@@ -8,20 +8,20 @@ from .tuning import circular_difference_deg
 
 
 def grating_shift_metrics(baseline: dict[str, np.ndarray], shifted: dict[str, np.ndarray], threshold_deg: float) -> dict[str, float]:
-    """Summarize orientation and tuning-strength changes for one gaze shift."""
-    op_shift = circular_difference_deg(
-        shifted["preferred_orientation_deg"],
-        baseline["preferred_orientation_deg"],
+    """Summarize PO and tuning-strength changes for one gaze shift."""
+    delta_po = circular_difference_deg(
+        shifted["po_deg"],
+        baseline["po_deg"],
         period=180.0,
     )
-    abs_op = np.abs(op_shift)
+    abs_delta_po = np.abs(delta_po)
     cv_change = shifted["circular_variance"] - baseline["circular_variance"]
     strength_change = shifted["orientation_selectivity"] - baseline["orientation_selectivity"]
     return {
-        "median_abs_op_shift_deg": float(np.nanmedian(abs_op)),
-        "p90_abs_op_shift_deg": float(np.nanpercentile(abs_op, 90)),
-        "fraction_abs_op_shift_gt_threshold": float(np.nanmean(abs_op > float(threshold_deg))),
-        "median_signed_op_shift_deg": float(np.nanmedian(op_shift)),
+        "median_abs_delta_po_deg": float(np.nanmedian(abs_delta_po)),
+        "p90_abs_delta_po_deg": float(np.nanpercentile(abs_delta_po, 90)),
+        "fraction_abs_delta_po_gt_threshold": float(np.nanmean(abs_delta_po > float(threshold_deg))),
+        "median_signed_delta_po_deg": float(np.nanmedian(delta_po)),
         "median_circular_variance_change": float(np.nanmedian(cv_change)),
         "median_tuning_strength_change": float(np.nanmedian(strength_change)),
         "median_abs_tuning_strength_change": float(np.nanmedian(np.abs(strength_change))),
@@ -30,14 +30,14 @@ def grating_shift_metrics(baseline: dict[str, np.ndarray], shifted: dict[str, np
 
 def neuronwise_grating_changes(baseline: dict[str, np.ndarray], shifted: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
     """Return per-neuron grating sensitivity values."""
-    op_shift = circular_difference_deg(
-        shifted["preferred_orientation_deg"],
-        baseline["preferred_orientation_deg"],
+    delta_po = circular_difference_deg(
+        shifted["po_deg"],
+        baseline["po_deg"],
         period=180.0,
     )
     return {
-        "signed_op_shift_deg": op_shift,
-        "abs_op_shift_deg": np.abs(op_shift),
+        "signed_delta_po_deg": delta_po,
+        "abs_delta_po_deg": np.abs(delta_po),
         "circular_variance_change": shifted["circular_variance"] - baseline["circular_variance"],
         "tuning_strength_change": shifted["orientation_selectivity"] - baseline["orientation_selectivity"],
     }
