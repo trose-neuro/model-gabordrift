@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.plotting import heatmap_from_table, plot_summary_bars, set_plot_style
+from src.plotting import heatmap_from_table, plot_grating_gaze_rf_scheme, plot_summary_bars, set_plot_style
 from src.simulation import make_primary_figures
 from src.utils import ensure_output_dirs, load_config
 
@@ -25,6 +25,7 @@ def main() -> None:
     config = load_config(args.config, debug=args.debug)
     paths = ensure_output_dirs(config)
     set_plot_style()
+    plot_grating_gaze_rf_scheme(paths["figures"] / "scheme_grating_gaze_rf_delta_po.png")
 
     grating_path = paths["tables"] / "grating_shift_summary.csv"
     natural_path = paths["tables"] / "natural_image_shift_summary.csv"

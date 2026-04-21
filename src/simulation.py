@@ -15,6 +15,7 @@ from .metrics import grating_shift_metrics, natural_image_metrics, neuronwise_gr
 from .natural_images import load_natural_images
 from .plotting import (
     heatmap_from_table,
+    plot_grating_gaze_rf_scheme,
     plot_mapping_validation,
     plot_parameter_distributions,
     plot_response_matrix,
@@ -532,6 +533,7 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
     plot_retinotopy(population, paths["figures"] / "validation_retinotopy_maps.png")
     plot_rf_examples(population, config, paths["figures"] / "validation_receptive_field_examples.png")
     plot_mapping_validation(config, paths["figures"] / "validation_mapping_error_field.png")
+    plot_grating_gaze_rf_scheme(paths["figures"] / "scheme_grating_gaze_rf_delta_po.png")
 
     images = load_natural_images(config, np.random.default_rng(int(config["stimuli"]["natural_images"]["procedural_seed"])))
     grating_result = run_grating_shift_grid(

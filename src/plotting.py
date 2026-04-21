@@ -183,3 +183,116 @@ def plot_response_matrix(matrix: np.ndarray, path: str | Path, *, title: str = "
     plt.ylabel("Image")
     plt.title(title)
     savefig(path)
+
+
+def plot_grating_gaze_rf_scheme(path: str | Path) -> None:
+    """Draw a schematic of how gaze-shifted gratings can create apparent ΔPO.
+
+    The scheme intentionally separates the physical stimulus operation from the
+    estimator consequence: a gaze shift translates the grating over the RF,
+    changing phase, and sparse phase-sensitive responses can reshape the tuning
+    curve enough to move the inferred PO.
+    """
+    axis = np.linspace(-5.0, 5.0, 240)
+    xx, yy = np.meshgrid(axis, axis)
+    rf_theta = 30.0
+    rf_sf = 0.05
+    rf = gabor_kernel(
+        xx,
+        yy,
+        theta_deg=rf_theta,
+        sf_cpd=rf_sf,
+        sigma_x_deg=1.7,
+        sigma_y_deg=0.8,
+        phase_rad=0.0,
+        normalize=False,
+    )
+    envelope = np.exp(-0.5 * (((xx * np.cos(np.deg2rad(rf_theta)) + yy * np.sin(np.deg2rad(rf_theta))) / 1.7) ** 2))
+    grating_theta = 30.0
+    gaze = np.array([5.0, 5.0])
+    theta_rad = np.deg2rad(grating_theta)
+    normal = np.array([np.cos(theta_rad), np.sin(theta_rad)])
+    phase_advance = 2.0 * np.pi * rf_sf * float(np.dot(gaze, normal))
+    baseline_grating = np.cos(2.0 * np.pi * rf_sf * (xx * normal[0] + yy * normal[1]) - 0.52)
+    shifted_grating = np.cos(2.0 * np.pi * rf_sf * (xx * normal[0] + yy * normal[1]) - 0.52 + phase_advance)
+
+    orientations = np.arange(0.0, 180.0, 10.0)
+    diff = ((orientations - rf_theta + 90.0) % 180.0) - 90.0
+    amplitude = np.exp(-0.5 * (diff / 28.0) ** 2)
+    phase0 = -0.52
+    tuning_base = np.maximum(amplitude * np.cos(phase0), 0.0) ** 1.25
+    phase_by_orientation = 2.0 * np.pi * rf_sf * (
+        gaze[0] * np.cos(np.deg2rad(orientations)) + gaze[1] * np.sin(np.deg2rad(orientations))
+    )
+    tuning_shift = np.maximum(amplitude * np.cos(phase0 + phase_by_orientation), 0.0) ** 1.25
+
+    def estimate_po(curve: np.ndarray) -> float:
+        weights = np.maximum(curve - np.min(curve), 0.0)
+        vector = np.sum(weights * np.exp(2j * np.deg2rad(orientations)))
+        return float((0.5 * np.rad2deg(np.angle(vector))) % 180.0)
+
+    po_base = estimate_po(tuning_base)
+    po_shift = estimate_po(tuning_shift)
+    delta_po = ((po_shift - po_base + 90.0) % 180.0) - 90.0
+
+    fig = plt.figure(figsize=(12.5, 7.5))
+    gs = fig.add_gridspec(2, 3, height_ratios=[1.0, 0.95], width_ratios=[1, 1, 1.05])
+    axes = [
+        fig.add_subplot(gs[0, 0]),
+        fig.add_subplot(gs[0, 1]),
+        fig.add_subplot(gs[0, 2]),
+        fig.add_subplot(gs[1, 0:2]),
+        fig.add_subplot(gs[1, 2]),
+    ]
+
+    for ax, grating, title in [
+        (axes[0], baseline_grating, "Baseline: grating over RF"),
+        (axes[1], shifted_grating, "After gaze shift: same orientation, new phase"),
+    ]:
+        ax.imshow(grating, extent=[axis.min(), axis.max(), axis.min(), axis.max()], origin="lower", cmap="gray", alpha=0.75)
+        ax.contour(xx, yy, rf, levels=[-0.55, -0.25, 0.25, 0.55], colors=["#2B6CB0", "#63B3ED", "#F6AD55", "#C05621"], linewidths=1.0)
+        ax.contour(xx, yy, envelope, levels=[0.25, 0.55, 0.85], colors="black", linewidths=0.7, alpha=0.55)
+        ax.set_title(title)
+        ax.set_xlabel("Azimuth (deg)")
+        ax.set_ylabel("Elevation (deg)")
+        ax.set_aspect("equal")
+    axes[1].annotate("", xy=(3.4, 3.4), xytext=(1.0, 1.0), arrowprops={"arrowstyle": "->", "lw": 2.0, "color": "#D62728"})
+    axes[1].text(3.5, 3.3, "gaze/FOV\ntranslation", color="#D62728", ha="left", va="center")
+
+    orient_fine = np.linspace(0.0, 170.0, 18)
+    for sf in [0.02, 0.05, 0.10, 0.20]:
+        phase_cycles = sf * (gaze[0] * np.cos(np.deg2rad(orient_fine)) + gaze[1] * np.sin(np.deg2rad(orient_fine)))
+        axes[2].plot(orient_fine, phase_cycles, marker="o", ms=3, label=f"{sf:.2f} cpd")
+    axes[2].axhline(0, color="0.35", lw=1)
+    axes[2].axvline(grating_theta, color="#D62728", lw=1.3, ls="--")
+    axes[2].set_title("Phase advance depends on orientation")
+    axes[2].set_xlabel("Grating orientation θ (deg)")
+    axes[2].set_ylabel("Δφ / 2π (cycles)")
+    axes[2].legend(frameon=False, fontsize=8)
+
+    axes[3].plot(orientations, tuning_base, "o-", lw=2, label=f"baseline PO={po_base:.1f}°")
+    axes[3].plot(orientations, tuning_shift, "s-", lw=2, label=f"shifted PO={po_shift:.1f}°")
+    axes[3].axvline(po_base, color="#1F77B4", lw=1.5, ls="--")
+    axes[3].axvline(po_shift, color="#FF7F0E", lw=1.5, ls="--")
+    axes[3].set_title(f"Sparse simple-cell phase sampling can move inferred PO: ΔPO={delta_po:.1f}°")
+    axes[3].set_xlabel("Stimulus orientation (deg)")
+    axes[3].set_ylabel("Rectified response")
+    axes[3].legend(frameon=False)
+
+    axes[4].axis("off")
+    scheme_text = (
+        "Mechanism\n\n"
+        "1. Gaze does not rotate a full-field grating.\n\n"
+        "2. It translates the grating over each RF.\n\n"
+        "3. Translation changes phase by:\n"
+        "   Δφ = 2πf(Δa cosθ + Δe sinθ)\n\n"
+        "4. With sparse phases + rectification,\n"
+        "   different orientations are modulated\n"
+        "   unequally.\n\n"
+        "5. The fitted tuning curve can shift,\n"
+        "   producing apparent ΔPO."
+    )
+    axes[4].text(0.0, 0.98, scheme_text, va="top", ha="left", fontsize=10)
+
+    fig.suptitle("How gaze-shifted full-field gratings can create apparent ΔPO", y=1.02, fontsize=15)
+    savefig(path)

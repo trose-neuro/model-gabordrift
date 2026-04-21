@@ -119,6 +119,8 @@ The debug run includes this explicit sanity check:
 
 This is the intended behavior. It shows that the model is not claiming a translated full-field grating rotates. Instead, apparent grating `ΔPO` comes from phase-sensitive response sampling and estimation.
 
+The schematic figure `results/figures/scheme_grating_gaze_rf_delta_po.png` visualizes the mechanism: baseline grating over an RF, gaze-shifted grating over the same RF, orientation-dependent phase advance, and the resulting apparent PO shift from sparse simple-cell phase sampling.
+
 ## Decomposition
 
 The central decomposition separates:
@@ -197,6 +199,7 @@ Important result files:
 - `results/tables/grating_shift_summary.csv`
 - `results/tables/natural_image_shift_summary.csv`
 - `results/tables/decomposition_summary.csv`
+- `results/figures/scheme_grating_gaze_rf_delta_po.png`
 - `results/figures/validation_grating_phase_sanity.png`
 - `results/figures/drift_sanity_median_abs_delta_po.png`
 - `results/figures/primary_06_natural_population_correlation.png`
