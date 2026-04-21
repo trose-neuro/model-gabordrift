@@ -75,6 +75,20 @@ stimuli:
       count: 8
       spacing: log
     phases_deg: [0.0, 90.0, 180.0, 270.0]
+  moving_gratings:
+    orientations_deg:
+      start: 0.0
+      stop: 180.0
+      step: 10.0
+    spatial_frequencies_cpd:
+      min: 0.01
+      max: 0.20
+      count: 8
+      spacing: log
+    temporal_frequency_hz: 2.0
+    duration_s: 1.0
+    time_samples: 16
+    phases_deg: [0.0]
   natural_images:
     folder: null
     n_images: 12
@@ -136,6 +150,20 @@ debug:
         count: 5
         spacing: log
       phases_deg: [0.0, 90.0]
+    moving_gratings:
+      orientations_deg:
+        start: 0.0
+        stop: 180.0
+        step: 20.0
+      spatial_frequencies_cpd:
+        min: 0.015
+        max: 0.18
+        count: 5
+        spacing: log
+      temporal_frequency_hz: 2.0
+      duration_s: 1.0
+      time_samples: 8
+      phases_deg: [0.0]
     natural_images:
       n_images: 8
       image_size_px: 48

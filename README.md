@@ -121,6 +121,18 @@ This is the intended behavior. It shows that the model is not claiming a transla
 
 The schematic figure `results/figures/scheme_grating_gaze_rf_delta_po.png` visualizes the mechanism: baseline grating over an RF, gaze-shifted grating over the same RF, orientation-dependent phase advance, and the resulting apparent PO shift from sparse simple-cell phase sampling.
 
+Moving gratings are handled with the same logic, but temporal samples replace static phase samples:
+
+```text
+I(x, y, t) = cos(2π f (x cosθ + y sinθ) - 2π TF t + ψ)
+```
+
+For a full-field moving grating, gaze still adds only a fixed spatial phase offset. Motion sweeps phase through time. Therefore, a sparse time sample can show apparent `ΔPO` in a phase-sensitive simple-cell model, while dense sampling over a drift cycle or an energy model should strongly suppress deterministic `ΔPO`. The moving-grating sanity outputs are:
+
+- `results/tables/moving_grating_temporal_sanity_summary.csv`
+- `results/figures/validation_moving_grating_temporal_sanity.png`
+- `results/figures/scheme_moving_grating_gaze_rf_delta_po.png`
+
 ## Decomposition
 
 The central decomposition separates:
@@ -165,6 +177,7 @@ The main config is `configs/default.yaml`. It controls:
 - exact versus approximate spherical-to-plane mapping
 - RF parameter distributions
 - grating orientation/SF/phase grids
+- moving-grating orientation/SF/temporal-frequency/time-sampling grids
 - natural-image size, extent, and count
 - gaze-shift ranges
 - noise model, SNR, and repeats
@@ -195,13 +208,18 @@ Primary figures include heat maps for median and 90th percentile `|ΔPO|`, fract
 Important result files:
 
 - `results/tables/grating_phase_sanity_summary.csv`
+- `results/tables/moving_grating_temporal_sanity_summary.csv`
+- `results/tables/moving_grating_drift_sanity_summary.csv`
 - `results/tables/drift_sanity_summary.csv`
 - `results/tables/grating_shift_summary.csv`
 - `results/tables/natural_image_shift_summary.csv`
 - `results/tables/decomposition_summary.csv`
 - `results/figures/scheme_grating_gaze_rf_delta_po.png`
+- `results/figures/scheme_moving_grating_gaze_rf_delta_po.png`
 - `results/figures/validation_grating_phase_sanity.png`
+- `results/figures/validation_moving_grating_temporal_sanity.png`
 - `results/figures/drift_sanity_median_abs_delta_po.png`
+- `results/figures/drift_sanity_moving_grating_median_abs_delta_po.png`
 - `results/figures/primary_06_natural_population_correlation.png`
 - `results/figures/primary_07_natural_rdm_similarity.png`
 
@@ -210,8 +228,8 @@ Important result files:
 Run notebooks only after activating `gaze_v1_sim`.
 
 - `01_model_setup_and_sampling.ipynb`: explains the simulated FOV, sampled RF parameters, retinotopy, coordinate mapping, and RF examples.
-- `02_grating_tuning_and_po_estimation.ipynb`: explains grating phase advance, PO estimation, tuning curves, simple-cell versus energy-model behavior, and the phase-sampling sanity check.
-- `03_gaze_shift_heatmaps.ipynb`: shows grating `ΔPO`, circular-variance, and tuning-strength heat maps, plus neuron-level sensitivity examples.
+- `02_grating_tuning_and_po_estimation.ipynb`: explains static and moving grating phase advance, PO estimation, tuning curves, simple-cell versus energy-model behavior, phase-sampling checks, and moving-grating temporal averaging checks.
+- `03_gaze_shift_heatmaps.ipynb`: shows static and moving grating `ΔPO`, circular-variance, and tuning-strength heat maps, plus neuron-level sensitivity examples.
 - `04_natural_images_comparison.ipynb`: shows image inputs, natural-image population correlations, RDM similarity, response matrices, and grating-versus-natural bridge plots.
 - `05_noise_and_mapping_error_effects.ipynb`: shows the four-way decomposition, mapping-error fields, and bootstrap PO uncertainty under different SNR regimes.
 - `06_parameter_sweeps_and_interpretation.ipynb`: ranks sensitivity across RF size, jitter, mapping error, and SNR assumptions.

@@ -8,7 +8,13 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.plotting import heatmap_from_table, plot_grating_gaze_rf_scheme, plot_summary_bars, set_plot_style
+from src.plotting import (
+    heatmap_from_table,
+    plot_grating_gaze_rf_scheme,
+    plot_moving_grating_gaze_rf_scheme,
+    plot_summary_bars,
+    set_plot_style,
+)
 from src.simulation import make_primary_figures
 from src.utils import ensure_output_dirs, load_config
 
@@ -26,6 +32,7 @@ def main() -> None:
     paths = ensure_output_dirs(config)
     set_plot_style()
     plot_grating_gaze_rf_scheme(paths["figures"] / "scheme_grating_gaze_rf_delta_po.png")
+    plot_moving_grating_gaze_rf_scheme(paths["figures"] / "scheme_moving_grating_gaze_rf_delta_po.png")
 
     grating_path = paths["tables"] / "grating_shift_summary.csv"
     natural_path = paths["tables"] / "natural_image_shift_summary.csv"
@@ -62,6 +69,21 @@ def main() -> None:
         from src.plotting import savefig
 
         savefig(paths["figures"] / "validation_grating_phase_sanity.png")
+
+    moving_sanity_path = paths["tables"] / "moving_grating_temporal_sanity_summary.csv"
+    if moving_sanity_path.exists():
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+        from src.plotting import savefig
+
+        moving_sanity = pd.read_csv(moving_sanity_path)
+        plt.figure(figsize=(7.5, 4.8))
+        sns.lineplot(data=moving_sanity, x="drift_deg", y="median_abs_delta_po_deg", hue="condition", marker="o")
+        plt.xlabel("Diagonal gaze/FOV drift (deg)")
+        plt.ylabel("Median |ΔPO| (deg)")
+        plt.title("Moving-grating temporal averaging sanity check")
+        plt.legend(frameon=False, fontsize=8)
+        savefig(paths["figures"] / "validation_moving_grating_temporal_sanity.png")
 
     bridge_path = paths["tables"] / "grating_natural_bridge_summary.csv"
     if bridge_path.exists():

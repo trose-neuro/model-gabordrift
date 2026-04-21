@@ -15,7 +15,7 @@ def methods_summary_text(config: dict) -> str:
 
 This first-pass null model simulates {n} L2/3-like units sampled uniformly in a {size:.0f} x {size:.0f} um V1 imaging field. Cortical positions are mapped to visual RF centers by a configurable local linear retinotopic transform with Gaussian cell-to-cell scatter. Each unit has a single Gabor-like receptive field with sampled PO, spatial-frequency preference, RF envelope widths, phase, gain, baseline, and static nonlinearity.
 
-Full-field gratings are evaluated with a Gabor-inspired analytic response model that separates orientation/SF matching from gaze-dependent phase. Natural-image responses are evaluated by applying sampled Gabor kernels to preprocessed grayscale images. If no image folder is provided, the pipeline uses procedural naturalistic images so the project remains runnable.
+Full-field static and moving gratings are evaluated with a Gabor-inspired analytic response model that separates orientation/SF matching from gaze-dependent phase. Moving gratings add a sampled temporal phase axis so sparse versus dense drift-cycle averaging can be compared. Natural-image responses are evaluated by applying sampled Gabor kernels to preprocessed grayscale images. If no image folder is provided, the pipeline uses procedural naturalistic images so the project remains runnable.
 
 Gaze is modeled as a global translation of the retinal image relative to the RFs. The configured grid spans azimuth {gaze['azimuth_deg']['min']} to {gaze['azimuth_deg']['max']} deg and elevation {gaze['elevation_deg']['min']} to {gaze['elevation_deg']['max']} deg in {gaze['azimuth_deg']['step']} deg azimuth steps and {gaze['elevation_deg']['step']} deg elevation steps. Exact spherical projection and parameterized approximate mappings can be compared. Output noise can be disabled or simulated as Gaussian, Poisson-like, multiplicative gain noise, or combined Gaussian plus multiplicative noise.
 
@@ -28,6 +28,7 @@ def interpretation_text(
     natural_table: pd.DataFrame,
     decomposition_table: pd.DataFrame | None = None,
     phase_sanity_table: pd.DataFrame | None = None,
+    moving_sanity_table: pd.DataFrame | None = None,
 ) -> str:
     """Generate a compact interpretation from saved summary metrics."""
     far_g = grating_table.assign(radius=grating_table["gaze_az_deg"].abs() + grating_table["gaze_el_deg"].abs())
@@ -44,6 +45,8 @@ def interpretation_text(
         "",
         "Why can a gaze shift affect PO for full-field gratings at all? Translating an infinite grating does not rotate it; it advances stimulus phase at each RF by Δφ = 2π f (Δa cosθ + Δe sinθ). Therefore a perfectly phase-invariant cell, or a simple-cell response averaged over dense stimulus phases, should show little to no deterministic ΔPO under perfect mapping and no noise. Apparent ΔPO appears when finite phase sampling and rectification let that phase advance modulate different orientations unevenly, or when mapping error and noise perturb the estimated tuning curve.",
         "",
+        "Moving gratings add a temporal phase term, φtime(t) = -2πTFt. The gaze shift still contributes only a fixed spatial phase offset for a full-field grating. If responses are averaged over enough samples from a drift cycle, that fixed offset should cancel for the simple-cell model; the energy model should be stable even without dense temporal sampling. Sparse time samples remain phase-sensitive and can therefore mimic PO shifts.",
+        "",
         "Under this model, gaze matters little when RFs are broad, phase is averaged or an energy model is used, mapping is accurate, and SNR is high. Gaze matters more when RFs are narrow, high-SF units are common, phase-sensitive simple-cell responses are estimated from limited phases, or natural images contain local structure that translates across RF subfields.",
         "",
         "Mapping errors matter when approximate projection, wrong scale, origin offsets, rotation mismatch, or nonlinear distortion produce systematic phase and position errors comparable to the RF subfield scale. Low SNR dominates when repeated-trial averaging and bootstrap intervals show large PO uncertainty even at zero or small gaze offsets.",
@@ -58,6 +61,11 @@ def interpretation_text(
     if phase_sanity_table is not None and not phase_sanity_table.empty:
         edge = phase_sanity_table.sort_values("drift_deg").groupby("condition").tail(1)
         lines.extend(["", "Full-field grating phase sanity check at the largest tested drift:"])
+        for row in edge.sort_values("condition").itertuples(index=False):
+            lines.append(f"- {row.condition}: median |ΔPO| {row.median_abs_delta_po_deg:.2f} deg.")
+    if moving_sanity_table is not None and not moving_sanity_table.empty:
+        edge = moving_sanity_table.sort_values("drift_deg").groupby("condition").tail(1)
+        lines.extend(["", "Moving-grating temporal sanity check at the largest tested drift:"])
         for row in edge.sort_values("condition").itertuples(index=False):
             lines.append(f"- {row.condition}: median |ΔPO| {row.median_abs_delta_po_deg:.2f} deg.")
     lines.append("")

@@ -296,3 +296,135 @@ def plot_grating_gaze_rf_scheme(path: str | Path) -> None:
 
     fig.suptitle("How gaze-shifted full-field gratings can create apparent ΔPO", y=1.02, fontsize=15)
     savefig(path)
+
+
+def plot_moving_grating_gaze_rf_scheme(path: str | Path) -> None:
+    """Draw the moving-grating analogue of the gaze/RF ΔPO mechanism.
+
+    Motion sweeps grating phase over time. A gaze shift still adds a fixed
+    spatial phase offset, but dense temporal averaging over a drift cycle should
+    largely cancel that offset in the simple-cell model; the energy model is
+    phase-invariant by construction.
+    """
+    axis = np.linspace(-5.0, 5.0, 240)
+    xx, yy = np.meshgrid(axis, axis)
+    rf_theta = 35.0
+    sf_cpd = 0.06
+    tf_hz = 2.0
+    theta_rad = np.deg2rad(rf_theta)
+    normal = np.array([np.cos(theta_rad), np.sin(theta_rad)])
+    gaze = np.array([5.0, 5.0])
+    phase0 = -0.45
+    phase_gaze = 2.0 * np.pi * sf_cpd * float(np.dot(gaze, normal))
+    frame_t0 = np.cos(2.0 * np.pi * sf_cpd * (xx * normal[0] + yy * normal[1]) + phase0)
+    shifted_t0 = np.cos(2.0 * np.pi * sf_cpd * (xx * normal[0] + yy * normal[1]) + phase0 + phase_gaze)
+    t_later = 0.125
+    shifted_t1 = np.cos(
+        2.0 * np.pi * sf_cpd * (xx * normal[0] + yy * normal[1])
+        + phase0
+        + phase_gaze
+        - 2.0 * np.pi * tf_hz * t_later
+    )
+    rf = gabor_kernel(
+        xx,
+        yy,
+        theta_deg=rf_theta,
+        sf_cpd=sf_cpd,
+        sigma_x_deg=1.6,
+        sigma_y_deg=0.8,
+        phase_rad=0.0,
+        normalize=False,
+    )
+
+    orientations = np.arange(0.0, 180.0, 10.0)
+    diff = ((orientations - rf_theta + 90.0) % 180.0) - 90.0
+    amplitude = np.exp(-0.5 * (diff / 28.0) ** 2)
+    phase_by_orientation = 2.0 * np.pi * sf_cpd * (
+        gaze[0] * np.cos(np.deg2rad(orientations)) + gaze[1] * np.sin(np.deg2rad(orientations))
+    )
+
+    def temporal_tuning(n_samples: int, shifted: bool) -> np.ndarray:
+        t = np.linspace(0.0, 1.0 / tf_hz, n_samples, endpoint=False)
+        temporal_phase = -2.0 * np.pi * tf_hz * t
+        gaze_phase = phase_by_orientation if shifted else np.zeros_like(phase_by_orientation)
+        drive = amplitude[:, None] * np.cos(phase0 + gaze_phase[:, None] + temporal_phase[None, :])
+        return np.mean(np.maximum(drive, 0.0) ** 1.25, axis=1)
+
+    def estimate_po(curve: np.ndarray) -> float:
+        weights = np.maximum(curve - np.min(curve), 0.0)
+        vector = np.sum(weights * np.exp(2j * np.deg2rad(orientations)))
+        return float((0.5 * np.rad2deg(np.angle(vector))) % 180.0)
+
+    sparse_base = temporal_tuning(1, shifted=False)
+    sparse_shift = temporal_tuning(1, shifted=True)
+    dense_base = temporal_tuning(24, shifted=False)
+    dense_shift = temporal_tuning(24, shifted=True)
+    po_sparse_base = estimate_po(sparse_base)
+    po_sparse_shift = estimate_po(sparse_shift)
+    po_dense_base = estimate_po(dense_base)
+    po_dense_shift = estimate_po(dense_shift)
+    delta_sparse = ((po_sparse_shift - po_sparse_base + 90.0) % 180.0) - 90.0
+    delta_dense = ((po_dense_shift - po_dense_base + 90.0) % 180.0) - 90.0
+
+    fig = plt.figure(figsize=(13.0, 8.0))
+    gs = fig.add_gridspec(2, 3, height_ratios=[0.95, 1.05])
+    frame_axes = [fig.add_subplot(gs[0, idx]) for idx in range(3)]
+    ax_phase = fig.add_subplot(gs[1, 0])
+    ax_tuning = fig.add_subplot(gs[1, 1])
+    ax_text = fig.add_subplot(gs[1, 2])
+
+    for ax, frame, title in [
+        (frame_axes[0], frame_t0, "t = 0, no gaze shift"),
+        (frame_axes[1], shifted_t0, "t = 0, gaze-shifted phase"),
+        (frame_axes[2], shifted_t1, "later: motion sweeps phase"),
+    ]:
+        ax.imshow(frame, extent=[axis.min(), axis.max(), axis.min(), axis.max()], origin="lower", cmap="gray", alpha=0.75)
+        ax.contour(xx, yy, rf, levels=[-0.55, -0.25, 0.25, 0.55], colors=["#2B6CB0", "#63B3ED", "#F6AD55", "#C05621"], linewidths=1.0)
+        ax.set_title(title)
+        ax.set_xlabel("Azimuth (deg)")
+        ax.set_ylabel("Elevation (deg)")
+        ax.set_aspect("equal")
+    frame_axes[1].annotate("", xy=(3.4, 3.4), xytext=(1.0, 1.0), arrowprops={"arrowstyle": "->", "lw": 2.0, "color": "#D62728"})
+    frame_axes[1].text(3.5, 3.3, "gaze/FOV\ntranslation", color="#D62728", ha="left", va="center")
+
+    time = np.linspace(0.0, 1.0 / tf_hz, 200)
+    phase_cycles = (-tf_hz * time) % 1.0
+    gaze_cycles = (phase_gaze / (2.0 * np.pi)) % 1.0
+    ax_phase.plot(time, phase_cycles, lw=2, label="motion phase")
+    ax_phase.axhline(gaze_cycles, color="#D62728", ls="--", lw=1.5, label="fixed gaze phase offset")
+    sample_time = np.linspace(0.0, 1.0 / tf_hz, 4, endpoint=False)
+    ax_phase.scatter(sample_time, (-tf_hz * sample_time) % 1.0, color="black", s=26, zorder=3, label="4 samples")
+    ax_phase.set_title("Moving gratings convert time into phase samples")
+    ax_phase.set_xlabel("Time (s)")
+    ax_phase.set_ylabel("Phase (cycles)")
+    ax_phase.legend(frameon=False, fontsize=8)
+
+    ax_tuning.plot(orientations, sparse_base, "o-", lw=1.8, label=f"1 time, baseline PO={po_sparse_base:.1f}°")
+    ax_tuning.plot(orientations, sparse_shift, "s-", lw=1.8, label=f"1 time, shifted PO={po_sparse_shift:.1f}°")
+    ax_tuning.plot(orientations, dense_base, "o--", lw=1.6, color="#4C78A8", alpha=0.8, label=f"24 times, baseline PO={po_dense_base:.1f}°")
+    ax_tuning.plot(orientations, dense_shift, "s--", lw=1.6, color="#F58518", alpha=0.8, label=f"24 times, shifted PO={po_dense_shift:.1f}°")
+    ax_tuning.set_title(
+        f"Temporal averaging suppresses apparent |ΔPO| ({abs(delta_sparse):.1f}° to {abs(delta_dense):.1f}°)"
+    )
+    ax_tuning.set_xlabel("Stimulus orientation (deg)")
+    ax_tuning.set_ylabel("Mean rectified response")
+    ax_tuning.legend(frameon=False, fontsize=7.5)
+
+    ax_text.axis("off")
+    scheme_text = (
+        "Moving-grating sanity check\n\n"
+        "1. Gaze adds a fixed spatial phase:\n"
+        "   Δφgaze = 2πf(Δa cosθ + Δe sinθ)\n\n"
+        "2. Motion adds a temporal phase:\n"
+        "   φtime(t) = -2πTFt\n\n"
+        "3. Sparse time samples can still make\n"
+        "   phase-sensitive simple-cell responses\n"
+        "   look like PO changes.\n\n"
+        "4. Dense samples over a drift cycle, or an\n"
+        "   energy model, should remove deterministic\n"
+        "   gaze-induced ΔPO for full-field gratings."
+    )
+    ax_text.text(0.0, 0.98, scheme_text, va="top", ha="left", fontsize=10)
+
+    fig.suptitle("How gaze and moving gratings interact over RFs", y=1.02, fontsize=15)
+    savefig(path)

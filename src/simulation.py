@@ -17,6 +17,7 @@ from .plotting import (
     heatmap_from_table,
     plot_grating_gaze_rf_scheme,
     plot_mapping_validation,
+    plot_moving_grating_gaze_rf_scheme,
     plot_parameter_distributions,
     plot_response_matrix,
     plot_retinotopy,
@@ -29,7 +30,7 @@ from .plotting import (
 from .responses import grating_response_mean, natural_response_trials
 from .rf_models import gabor_kernel_bank
 from .sampling import sample_population
-from .stimuli import make_gaze_grid, make_grating_stimuli
+from .stimuli import make_gaze_grid, make_grating_stimuli, make_moving_grating_stimuli
 from .tuning import estimate_orientation_tuning
 from .utils import deep_update, ensure_output_dirs, rng_from_config, write_text
 
@@ -79,9 +80,10 @@ def run_grating_shift_grid(
     noise_config: dict | None = None,
     response_model: str | None = None,
     shifts: pd.DataFrame | None = None,
+    stimuli: dict[str, object] | None = None,
 ) -> dict[str, object]:
     """Run grating tuning estimation for all gaze shifts."""
-    stimuli = make_grating_stimuli(config)
+    stimuli = make_grating_stimuli(config) if stimuli is None else stimuli
     shifts = make_gaze_grid(config) if shifts is None else shifts.copy()
     threshold = float(config["analysis"].get("po_large_shift_threshold_deg", 10.0))
 
@@ -492,6 +494,68 @@ def make_grating_phase_sanity(
     return table
 
 
+def make_moving_grating_temporal_sanity(
+    population: pd.DataFrame,
+    config: dict,
+    rng: np.random.Generator,
+    paths: dict[str, Path],
+) -> pd.DataFrame:
+    """Check whether moving-grating temporal averaging suppresses apparent ΔPO.
+
+    A moving full-field grating sweeps phase over time. With dense sampling
+    across a drift cycle, the gaze-induced spatial phase offset should average
+    out for a simple-cell model, and an energy model should be invariant even
+    without temporal averaging.
+    """
+    drift_values = np.array([0.0, 1.0, 2.0, 5.0, 10.0])
+    shifts = pd.DataFrame({"gaze_az_deg": drift_values, "gaze_el_deg": drift_values})
+    noiseless = {"model": "none", "repeats": 1, "clip_nonnegative": True}
+    conditions = [
+        ("simple_1_time", "simple", 1),
+        ("simple_2_times", "simple", 2),
+        ("simple_4_times", "simple", 4),
+        ("simple_24_times", "simple", 24),
+        ("energy_model", "energy", 1),
+    ]
+
+    tables = []
+    for idx, (condition, model, time_samples) in enumerate(conditions):
+        cfg = deepcopy(config)
+        moving_cfg = cfg["stimuli"].setdefault("moving_gratings", deepcopy(cfg["stimuli"]["gratings"]))
+        moving_cfg["time_samples"] = int(time_samples)
+        moving_cfg["phases_deg"] = [0.0]
+        tf_hz = float(moving_cfg.get("temporal_frequency_hz", 2.0))
+        moving_cfg["duration_s"] = 1.0 / tf_hz
+        moving_stimuli = make_moving_grating_stimuli(cfg)
+        result = run_grating_shift_grid(
+            population,
+            cfg,
+            np.random.default_rng(rng.integers(0, 2**32 - 1) + idx + 100),
+            mapping_config=perfect_mapping_config(),
+            noise_config=noiseless,
+            response_model=model,
+            shifts=shifts,
+            stimuli=moving_stimuli,
+        )["summary"]
+        result["condition"] = condition
+        result["drift_deg"] = result["gaze_az_deg"]
+        result["time_samples"] = int(time_samples)
+        result["temporal_frequency_hz"] = tf_hz
+        tables.append(result)
+
+    table = pd.concat(tables, ignore_index=True)
+    table.to_csv(paths["tables"] / "moving_grating_temporal_sanity_summary.csv", index=False)
+
+    plt.figure(figsize=(7.5, 4.8))
+    sns.lineplot(data=table, x="drift_deg", y="median_abs_delta_po_deg", hue="condition", marker="o")
+    plt.xlabel("Diagonal gaze/FOV drift (deg)")
+    plt.ylabel("Median |ΔPO| (deg)")
+    plt.title("Moving-grating temporal averaging sanity check")
+    plt.legend(frameon=False, fontsize=8)
+    savefig(paths["figures"] / "validation_moving_grating_temporal_sanity.png")
+    return table
+
+
 def compare_simple_energy(
     population: pd.DataFrame,
     images: np.ndarray,
@@ -534,6 +598,7 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
     plot_rf_examples(population, config, paths["figures"] / "validation_receptive_field_examples.png")
     plot_mapping_validation(config, paths["figures"] / "validation_mapping_error_field.png")
     plot_grating_gaze_rf_scheme(paths["figures"] / "scheme_grating_gaze_rf_delta_po.png")
+    plot_moving_grating_gaze_rf_scheme(paths["figures"] / "scheme_moving_grating_gaze_rf_delta_po.png")
 
     images = load_natural_images(config, np.random.default_rng(int(config["stimuli"]["natural_images"]["procedural_seed"])))
     grating_result = run_grating_shift_grid(
@@ -569,6 +634,12 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
     make_primary_figures(grating_summary, natural_summary, paths)
     make_secondary_figures(population, grating_result, natural_result, paths)
     phase_sanity = make_grating_phase_sanity(population, config, rng, paths)
+    moving_sanity = make_moving_grating_temporal_sanity(
+        population,
+        config,
+        np.random.default_rng(int(config["project"]["random_seed"]) + 7000),
+        paths,
+    )
 
     decomposition = pd.DataFrame()
     if run_decomp:
@@ -597,7 +668,7 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
     write_text(paths["tables"] / "methods_summary.md", methods_summary_text(config))
     write_text(
         paths["tables"] / "interpretation_summary.md",
-        interpretation_text(grating_summary, natural_summary, decomposition, phase_sanity),
+        interpretation_text(grating_summary, natural_summary, decomposition, phase_sanity, moving_sanity),
     )
 
     return {
@@ -607,6 +678,7 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
         "decomposition": decomposition,
         "model_comparison": model_comparison,
         "phase_sanity": phase_sanity,
+        "moving_sanity": moving_sanity,
         "paths": paths,
     }
 

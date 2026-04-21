@@ -63,6 +63,61 @@ def grating_response_mean(
     return trials.mean(axis=0), trials
 
 
+def moving_grating_response_trials(
+    population: pd.DataFrame,
+    stimuli: dict[str, np.ndarray],
+    config: dict,
+    rng: np.random.Generator,
+    *,
+    gaze_shift: tuple[float, float] = (0.0, 0.0),
+    mapping_config: dict | None = None,
+    noise_config: dict | None = None,
+    response_model: str | None = None,
+) -> np.ndarray:
+    """Compute moving-grating responses with shape ``(repeats, n, ori, sf)``.
+
+    The moving-grating stimulus dictionary encodes temporal samples as the
+    grating phase axis, so the static grating response engine can be reused.
+    Averaging across that axis estimates the response over the sampled motion
+    cycle.
+    """
+    return grating_response_trials(
+        population,
+        stimuli,
+        config,
+        rng,
+        gaze_shift=gaze_shift,
+        mapping_config=mapping_config,
+        noise_config=noise_config,
+        response_model=response_model,
+    )
+
+
+def moving_grating_response_mean(
+    population: pd.DataFrame,
+    stimuli: dict[str, np.ndarray],
+    config: dict,
+    rng: np.random.Generator,
+    *,
+    gaze_shift: tuple[float, float] = (0.0, 0.0),
+    mapping_config: dict | None = None,
+    noise_config: dict | None = None,
+    response_model: str | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return trial-averaged moving-grating responses and repeated responses."""
+    trials = moving_grating_response_trials(
+        population,
+        stimuli,
+        config,
+        rng,
+        gaze_shift=gaze_shift,
+        mapping_config=mapping_config,
+        noise_config=noise_config,
+        response_model=response_model,
+    )
+    return trials.mean(axis=0), trials
+
+
 def natural_response_matrix(
     population: pd.DataFrame,
     images: np.ndarray,
