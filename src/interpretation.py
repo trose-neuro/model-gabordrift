@@ -29,6 +29,7 @@ def interpretation_text(
     decomposition_table: pd.DataFrame | None = None,
     phase_sanity_table: pd.DataFrame | None = None,
     moving_sanity_table: pd.DataFrame | None = None,
+    longitudinal_table: pd.DataFrame | None = None,
 ) -> str:
     """Generate a compact interpretation from saved summary metrics."""
     far_g = grating_table.assign(radius=grating_table["gaze_az_deg"].abs() + grating_table["gaze_el_deg"].abs())
@@ -68,6 +69,19 @@ def interpretation_text(
         lines.extend(["", "Moving-grating temporal sanity check at the largest tested drift:"])
         for row in edge.sort_values("condition").itertuples(index=False):
             lines.append(f"- {row.condition}: median |ΔPO| {row.median_abs_delta_po_deg:.2f} deg.")
+    if longitudinal_table is not None and not longitudinal_table.empty:
+        edge = longitudinal_table.sort_values("weeks_from_reference").groupby("condition").tail(1)
+        lines.extend(["", "Longitudinal weekly decomposition at the latest simulated session:"])
+        for row in edge.sort_values("condition").itertuples(index=False):
+            lines.append(
+                f"- {row.condition}: measured gaze {row.measured_gaze_deg:.2f} deg, static-grating median |ΔPO| {row.static_grating_median_abs_delta_po_deg:.2f} deg, moving-grating median |ΔPO| {row.moving_grating_median_abs_delta_po_deg:.2f} deg, natural-image correlation {row.natural_population_response_correlation:.3f}, natural-image RDM similarity {row.natural_rdm_similarity_to_baseline:.3f}."
+            )
+        lines.extend(
+            [
+                "",
+                "This weekly comparison is the main test of the biological question: if the data mainly follow the gaze-only or gaze-plus-mapping-error curves, the model supports an optical or registration explanation. If the data require circuit-drift-only or gaze-plus-circuit-drift trajectories, then a cumulative neural-state change is needed in addition to gaze.",
+            ]
+        )
     lines.append("")
     lines.append(
         "Natural images are considered more gaze-sensitive than gratings here when their population correlation or RDM similarity drops substantially while grating ΔPO remains small. That pattern is expected because translating a structured image can change RF drive without necessarily changing the PO that best fits grating responses."

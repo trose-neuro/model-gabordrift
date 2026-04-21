@@ -32,4 +32,12 @@ Moving-grating temporal sanity check at the largest tested drift:
 - simple_2_times: median |ΔPO| 6.22 deg.
 - simple_4_times: median |ΔPO| 0.94 deg.
 
+Longitudinal weekly decomposition at the latest simulated session:
+- circuit_drift_only: measured gaze 4.00 deg, static-grating median |ΔPO| 4.13 deg, moving-grating median |ΔPO| 1.93 deg, natural-image correlation 0.981, natural-image RDM similarity 0.998.
+- gaze_only: measured gaze 4.00 deg, static-grating median |ΔPO| 6.36 deg, moving-grating median |ΔPO| 0.94 deg, natural-image correlation 0.409, natural-image RDM similarity 0.822.
+- gaze_plus_circuit_drift: measured gaze 4.00 deg, static-grating median |ΔPO| 7.40 deg, moving-grating median |ΔPO| 2.17 deg, natural-image correlation 0.404, natural-image RDM similarity 0.833.
+- gaze_plus_mapping_error: measured gaze 4.00 deg, static-grating median |ΔPO| 6.72 deg, moving-grating median |ΔPO| 0.98 deg, natural-image correlation 0.398, natural-image RDM similarity 0.824.
+
+This weekly comparison is the main test of the biological question: if the data mainly follow the gaze-only or gaze-plus-mapping-error curves, the model supports an optical or registration explanation. If the data require circuit-drift-only or gaze-plus-circuit-drift trajectories, then a cumulative neural-state change is needed in addition to gaze.
+
 Natural images are considered more gaze-sensitive than gratings here when their population correlation or RDM similarity drops substantially while grating ΔPO remains small. That pattern is expected because translating a structured image can change RF drive without necessarily changing the PO that best fits grating responses.

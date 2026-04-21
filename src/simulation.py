@@ -11,10 +11,13 @@ import pandas as pd
 import seaborn as sns
 
 from .interpretation import interpretation_text, methods_summary_text
+from .longitudinal import apply_circuit_drift, make_session_schedule, sample_circuit_drift_state
 from .metrics import grating_shift_metrics, natural_image_metrics, neuronwise_grating_changes, safe_corrcoef
 from .natural_images import load_natural_images
 from .plotting import (
     heatmap_from_table,
+    plot_longitudinal_hypothesis_summary,
+    plot_longitudinal_metric_panels,
     plot_grating_gaze_rf_scheme,
     plot_mapping_validation,
     plot_moving_grating_gaze_rf_scheme,
@@ -27,7 +30,7 @@ from .plotting import (
     savefig,
     set_plot_style,
 )
-from .responses import grating_response_mean, natural_response_trials
+from .responses import grating_response_mean, moving_grating_response_mean, natural_response_trials
 from .rf_models import gabor_kernel_bank
 from .sampling import sample_population
 from .stimuli import make_gaze_grid, make_grating_stimuli, make_moving_grating_stimuli
@@ -585,6 +588,166 @@ def compare_simple_energy(
     return out
 
 
+def _prefixed(metrics: dict[str, float], prefix: str) -> dict[str, float]:
+    return {f"{prefix}_{key}": value for key, value in metrics.items()}
+
+
+def run_longitudinal_decomposition(
+    population: pd.DataFrame,
+    images: np.ndarray,
+    config: dict,
+    rng: np.random.Generator,
+) -> pd.DataFrame:
+    """Compare weekly gaze, mapping, and circuit-drift hypotheses side by side."""
+    schedule = make_session_schedule(config)
+    response_model = config["rf"].get("response_model", "simple")
+    noise_config = config.get("noise", {"model": "none", "repeats": 1})
+    threshold = float(config["analysis"].get("po_large_shift_threshold_deg", 10.0))
+    long_cfg = config.get("longitudinal", {})
+    circuit_scale = float(long_cfg.get("circuit_drift_scale_relative_to_gaze", 1.0))
+    circuit_cfg = long_cfg.get("circuit_drift", {})
+    static_stimuli = make_grating_stimuli(config)
+    moving_stimuli = make_moving_grating_stimuli(config)
+    img_cfg = config["stimuli"]["natural_images"]
+    kernels = gabor_kernel_bank(
+        population,
+        image_size_px=int(img_cfg["image_size_px"]),
+        extent_deg=float(img_cfg["extent_deg"]),
+    )
+    drift_state = sample_circuit_drift_state(population, np.random.default_rng(rng.integers(0, 2**32 - 1)))
+
+    conditions = [
+        ("gaze_only", True, False, perfect_mapping_config()),
+        ("gaze_plus_mapping_error", True, False, SMALL_MAPPING_ERROR),
+        ("circuit_drift_only", False, True, perfect_mapping_config()),
+        ("gaze_plus_circuit_drift", True, True, perfect_mapping_config()),
+    ]
+    rows = []
+    for idx, (condition, use_gaze, use_circuit, mapping_config) in enumerate(conditions):
+        local_rng = np.random.default_rng(rng.integers(0, 2**32 - 1) + idx + 200)
+        baseline_population = apply_circuit_drift(population, 0.0, drift_state, circuit_cfg)
+        baseline_static, _ = grating_response_mean(
+            baseline_population,
+            static_stimuli,
+            config,
+            local_rng,
+            gaze_shift=(0.0, 0.0),
+            mapping_config=mapping_config,
+            noise_config=noise_config,
+            response_model=response_model,
+        )
+        baseline_static_tuning_condition = estimate_orientation_tuning(
+            baseline_static,
+            static_stimuli["orientations_deg"],
+            static_stimuli["spatial_frequencies_cpd"],
+        )
+        baseline_moving, _ = moving_grating_response_mean(
+            baseline_population,
+            moving_stimuli,
+            config,
+            local_rng,
+            gaze_shift=(0.0, 0.0),
+            mapping_config=mapping_config,
+            noise_config=noise_config,
+            response_model=response_model,
+        )
+        baseline_moving_tuning_condition = estimate_orientation_tuning(
+            baseline_moving,
+            moving_stimuli["orientations_deg"],
+            moving_stimuli["spatial_frequencies_cpd"],
+        )
+        baseline_natural_condition = natural_response_trials(
+            baseline_population,
+            images,
+            config,
+            local_rng,
+            gaze_shift=(0.0, 0.0),
+            kernels=kernels,
+            mapping_config=mapping_config,
+            noise_config=noise_config,
+            response_model=response_model,
+        ).mean(axis=0)
+        for session in schedule.itertuples(index=False):
+            measured_gaze = float(session.measured_gaze_deg)
+            gaze = (
+                float(session.gaze_az_deg) if use_gaze else 0.0,
+                float(session.gaze_el_deg) if use_gaze else 0.0,
+            )
+            circuit_amplitude = circuit_scale * measured_gaze if use_circuit else 0.0
+            session_population = apply_circuit_drift(population, circuit_amplitude, drift_state, circuit_cfg)
+
+            static_mean, _ = grating_response_mean(
+                session_population,
+                static_stimuli,
+                config,
+                local_rng,
+                gaze_shift=gaze,
+                mapping_config=mapping_config,
+                noise_config=noise_config,
+                response_model=response_model,
+            )
+            static_tuning = estimate_orientation_tuning(
+                static_mean,
+                static_stimuli["orientations_deg"],
+                static_stimuli["spatial_frequencies_cpd"],
+            )
+
+            moving_mean, _ = moving_grating_response_mean(
+                session_population,
+                moving_stimuli,
+                config,
+                local_rng,
+                gaze_shift=gaze,
+                mapping_config=mapping_config,
+                noise_config=noise_config,
+                response_model=response_model,
+            )
+            moving_tuning = estimate_orientation_tuning(
+                moving_mean,
+                moving_stimuli["orientations_deg"],
+                moving_stimuli["spatial_frequencies_cpd"],
+            )
+
+            natural_response = natural_response_trials(
+                session_population,
+                images,
+                config,
+                local_rng,
+                gaze_shift=gaze,
+                kernels=kernels,
+                mapping_config=mapping_config,
+                noise_config=noise_config,
+                response_model=response_model,
+            ).mean(axis=0)
+
+            row = {
+                "condition": condition,
+                "session_index": int(session.session_index),
+                "weeks_from_reference": float(session.weeks_from_reference),
+                "measured_gaze_deg": measured_gaze,
+                "applied_gaze_az_deg": gaze[0],
+                "applied_gaze_el_deg": gaze[1],
+                "circuit_drift_amplitude_deg": circuit_amplitude,
+                "mapping_mode": mapping_config.get("mode", "exact"),
+                "mapping_error_name": mapping_config.get("error", {}).get("name", "perfect"),
+            }
+            row.update(
+                _prefixed(
+                    grating_shift_metrics(baseline_static_tuning_condition, static_tuning, threshold),
+                    "static_grating",
+                )
+            )
+            row.update(
+                _prefixed(
+                    grating_shift_metrics(baseline_moving_tuning_condition, moving_tuning, threshold),
+                    "moving_grating",
+                )
+            )
+            row.update(_prefixed(natural_image_metrics(baseline_natural_condition, natural_response), "natural"))
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
     """Run the main simulation and save tables, arrays, figures, and text."""
     set_plot_style()
@@ -650,6 +813,11 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
             paths["figures"] / "primary_10_noiseless_noisy_mapping_comparison.png",
         )
 
+    longitudinal = run_longitudinal_decomposition(population, images, config, rng)
+    longitudinal.to_csv(paths["tables"] / "longitudinal_hypothesis_summary.csv", index=False)
+    plot_longitudinal_metric_panels(longitudinal, paths["figures"] / "primary_12_longitudinal_hypothesis_panels.png")
+    plot_longitudinal_hypothesis_summary(longitudinal, paths["figures"] / "primary_13_longitudinal_gaze_vs_similarity.png")
+
     model_comparison = compare_simple_energy(population, images, config, rng, paths)
     model_comparison.to_csv(paths["tables"] / "simple_vs_energy_summary.csv", index=False)
 
@@ -668,7 +836,7 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
     write_text(paths["tables"] / "methods_summary.md", methods_summary_text(config))
     write_text(
         paths["tables"] / "interpretation_summary.md",
-        interpretation_text(grating_summary, natural_summary, decomposition, phase_sanity, moving_sanity),
+        interpretation_text(grating_summary, natural_summary, decomposition, phase_sanity, moving_sanity, longitudinal),
     )
 
     return {
@@ -676,6 +844,7 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
         "grating": grating_result,
         "natural": natural_result,
         "decomposition": decomposition,
+        "longitudinal": longitudinal,
         "model_comparison": model_comparison,
         "phase_sanity": phase_sanity,
         "moving_sanity": moving_sanity,

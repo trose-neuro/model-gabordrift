@@ -156,6 +156,12 @@ The generated summary text is saved at:
 results/tables/interpretation_summary.md
 ```
 
+The weekly hypothesis comparison that cleanly separates gaze drift, mapping error, and circuit drift is saved at:
+
+```text
+results/tables/longitudinal_hypothesis_summary.csv
+```
+
 ## Natural Images
 
 Set `stimuli.natural_images.folder` in a config YAML to a folder of grayscale or RGB images:
@@ -205,6 +211,8 @@ Generated outputs are written to:
 
 Primary figures include heat maps for median and 90th percentile `|ΔPO|`, fraction of neurons above the `|ΔPO|` threshold, circular-variance change, tuning-strength change, natural-image response correlation, RDM similarity, response-change magnitude, grating versus natural-image summaries, decomposition summaries, simple-cell versus energy-model summaries, and a full-field grating phase-sanity check.
 
+Additional explanatory figures compare weekly trajectories for static gratings, moving gratings, and natural images under separate gaze-only, mapping-error, circuit-drift-only, and combined hypotheses.
+
 Important result files:
 
 - `results/tables/grating_phase_sanity_summary.csv`
@@ -214,6 +222,7 @@ Important result files:
 - `results/tables/grating_shift_summary.csv`
 - `results/tables/natural_image_shift_summary.csv`
 - `results/tables/decomposition_summary.csv`
+- `results/tables/longitudinal_hypothesis_summary.csv`
 - `results/figures/scheme_grating_gaze_rf_delta_po.png`
 - `results/figures/scheme_moving_grating_gaze_rf_delta_po.png`
 - `results/figures/validation_grating_phase_sanity.png`
@@ -222,6 +231,8 @@ Important result files:
 - `results/figures/drift_sanity_moving_grating_median_abs_delta_po.png`
 - `results/figures/primary_06_natural_population_correlation.png`
 - `results/figures/primary_07_natural_rdm_similarity.png`
+- `results/figures/primary_12_longitudinal_hypothesis_panels.png`
+- `results/figures/primary_13_longitudinal_gaze_vs_similarity.png`
 
 ## Notebooks
 
@@ -233,6 +244,8 @@ Run notebooks only after activating `gaze_v1_sim`.
 - `04_natural_images_comparison.ipynb`: shows image inputs, natural-image population correlations, RDM similarity, response matrices, and grating-versus-natural bridge plots.
 - `05_noise_and_mapping_error_effects.ipynb`: shows the four-way decomposition, mapping-error fields, and bootstrap PO uncertainty under different SNR regimes.
 - `06_parameter_sweeps_and_interpretation.ipynb`: ranks sensitivity across RF size, jitter, mapping error, and SNR assumptions.
+
+Notebook 06 also includes a weekly hypothesis section that overlays static gratings, moving gratings, and natural images against measured cumulative gaze drift so optical and circuit-drift explanations can be compared directly.
 
 ## Interpretation Targets
 

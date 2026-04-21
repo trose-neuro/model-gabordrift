@@ -126,9 +126,26 @@ analysis:
     - [5.0, 5.0]
     - [10.0, 10.0]
 
+longitudinal:
+  n_sessions: 6
+  session_interval_weeks: 1.0
+  cumulative_gaze_drift_deg_per_week: 1.0
+  drift_direction_deg: 45.0
+  circuit_drift_scale_relative_to_gaze: 1.0
+  circuit_drift:
+    azimuth_sd_deg_per_deg: 0.20
+    elevation_sd_deg_per_deg: 0.20
+    theta_sd_deg_per_deg: 0.75
+    log_sf_sd_per_deg: 0.03
+    log_gain_sd_per_deg: 0.04
+    baseline_sd_per_deg: 0.005
+    phase_sd_rad_per_deg: 0.10
+
 debug:
   cortical_field:
     n_neurons: 160
+  longitudinal:
+    n_sessions: 5
   gaze:
     azimuth_deg:
       min: 0.0

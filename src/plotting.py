@@ -185,6 +185,80 @@ def plot_response_matrix(matrix: np.ndarray, path: str | Path, *, title: str = "
     savefig(path)
 
 
+def plot_longitudinal_metric_panels(table: pd.DataFrame, path: str | Path) -> None:
+    """Plot weekly drift metrics across modalities and candidate mechanisms."""
+    metrics = [
+        ("static_grating_median_abs_delta_po_deg", "Static grating median |ΔPO| (deg)"),
+        ("moving_grating_median_abs_delta_po_deg", "Moving grating median |ΔPO| (deg)"),
+        ("natural_population_response_correlation", "Natural-image population correlation"),
+        ("natural_rdm_similarity_to_baseline", "Natural-image RDM similarity"),
+    ]
+    fig, axes = plt.subplots(2, 2, figsize=(11.8, 8.0), sharex=True)
+    for ax, (metric, title) in zip(axes.ravel(), metrics):
+        sns.lineplot(
+            data=table,
+            x="weeks_from_reference",
+            y=metric,
+            hue="condition",
+            style="condition",
+            marker="o",
+            ax=ax,
+        )
+        ax.set_title(title)
+        ax.set_xlabel("Weeks from reference")
+        ax.set_ylabel(title)
+        if metric.endswith("correlation") or metric.endswith("similarity"):
+            ax.set_ylim(-0.05, 1.05)
+        legend = ax.get_legend()
+        if legend is not None:
+            legend.remove()
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, labels, loc="upper center", bbox_to_anchor=(0.5, 0.97), ncols=2, frameon=False)
+    fig.suptitle("Weekly drift decomposition across stimulus classes", y=1.02)
+    savefig(path)
+
+
+def plot_longitudinal_hypothesis_summary(table: pd.DataFrame, path: str | Path) -> None:
+    """Plot measured gaze against similarity loss for each hypothesis."""
+    fig, axes = plt.subplots(1, 3, figsize=(14.0, 4.2), sharex=False)
+    specs = [
+        ("static_grating_median_abs_delta_po_deg", "Static grating |ΔPO|"),
+        ("moving_grating_median_abs_delta_po_deg", "Moving grating |ΔPO|"),
+        ("natural_population_response_correlation", "Natural-image correlation"),
+    ]
+    for ax, (metric, title) in zip(axes, specs):
+        sns.scatterplot(
+            data=table,
+            x="measured_gaze_deg",
+            y=metric,
+            hue="condition",
+            style="condition",
+            s=80,
+            ax=ax,
+        )
+        sns.lineplot(
+            data=table,
+            x="measured_gaze_deg",
+            y=metric,
+            hue="condition",
+            estimator=None,
+            legend=False,
+            ax=ax,
+        )
+        ax.set_title(title)
+        ax.set_xlabel("Measured cumulative gaze drift (deg)")
+        ax.set_ylabel(title)
+        legend = ax.get_legend()
+        if legend is not None:
+            legend.remove()
+    handles, labels = axes[0].get_legend_handles_labels()
+    if handles:
+        fig.legend(handles, labels, loc="lower center", bbox_to_anchor=(0.5, -0.02), ncols=4, frameon=False)
+    fig.suptitle("Does similarity track measured gaze under each mechanism?", y=1.02)
+    savefig(path)
+
+
 def plot_grating_gaze_rf_scheme(path: str | Path) -> None:
     """Draw a schematic of how gaze-shifted gratings can create apparent ΔPO.
 
