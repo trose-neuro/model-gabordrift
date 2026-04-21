@@ -82,6 +82,14 @@ Each neuron has:
 
 The grating pipeline uses a Gabor-inspired analytic response model. It separates orientation/SF matching from the phase shifts introduced when gaze translates the retinal image relative to RFs. The natural-image pipeline builds cosine and sine Gabor kernel banks on a visual grid and applies them to translated grayscale images.
 
+For full-field gratings, this distinction is critical. A gaze shift translates the grating, so it changes the phase at an RF:
+
+```text
+Δφ = 2π f (Δa cosθ + Δe sinθ)
+```
+
+It does not geometrically rotate the grating. Therefore, with perfect mapping and no noise, a phase-invariant energy model or a densely phase-averaged simple-cell model should show little to no deterministic `ΔPO`. Large `ΔPO` for gratings is interpreted as phase-sensitive estimation, finite phase sampling, mapping error, or SNR-driven instability rather than literal stimulus rotation.
+
 ## Decomposition
 
 The central decomposition separates:
@@ -139,14 +147,14 @@ Generated outputs are written to:
 - `results/arrays/`: compressed arrays for selected responses/images
 - `results/tables/`: CSV summaries plus `methods_summary.md` and `interpretation_summary.md`
 
-Primary figures include heat maps for median and 90th percentile `|ΔPO|`, fraction of neurons above the `|ΔPO|` threshold, circular-variance change, tuning-strength change, natural-image response correlation, RDM similarity, response-change magnitude, grating versus natural-image summaries, decomposition summaries, and simple-cell versus energy-model summaries.
+Primary figures include heat maps for median and 90th percentile `|ΔPO|`, fraction of neurons above the `|ΔPO|` threshold, circular-variance change, tuning-strength change, natural-image response correlation, RDM similarity, response-change magnitude, grating versus natural-image summaries, decomposition summaries, simple-cell versus energy-model summaries, and a full-field grating phase-sanity check.
 
 ## Notebooks
 
 Run notebooks only after activating `gaze_v1_sim`.
 
 - `01_model_setup_and_sampling.ipynb`: cortical sampling, retinotopy, mapping, RF distributions, RF examples
-- `02_grating_tuning_and_po_estimation.ipynb`: grating responses, PO estimation, circular variance, simple versus energy model
+- `02_grating_tuning_and_po_estimation.ipynb`: grating responses, PO estimation, circular variance, simple versus energy model, and the phase-sampling sanity check explaining why full-field gratings can show apparent `ΔPO`
 - `03_gaze_shift_heatmaps.ipynb`: grating gaze-shift heat maps and example tuning changes
 - `04_natural_images_comparison.ipynb`: natural-image responses, correlations, RDMs, grating comparison
 - `05_noise_and_mapping_error_effects.ipynb`: decomposition of geometry, mapping error, and SNR

@@ -436,6 +436,61 @@ def make_secondary_figures(
     )
 
 
+def make_grating_phase_sanity(
+    population: pd.DataFrame,
+    config: dict,
+    rng: np.random.Generator,
+    paths: dict[str, Path],
+) -> pd.DataFrame:
+    """Check when full-field grating gaze shifts can create apparent ΔPO.
+
+    In an ideal phase-invariant grating response, translating a full-field
+    grating changes only phase, not orientation. Apparent ΔPO in this null
+    model should therefore shrink when phases are densely averaged or when the
+    energy model is used.
+    """
+    drift_values = np.array([0.0, 1.0, 2.0, 5.0, 10.0])
+    shifts = pd.DataFrame({"gaze_az_deg": drift_values, "gaze_el_deg": drift_values})
+    noiseless = {"model": "none", "repeats": 1, "clip_nonnegative": True}
+    conditions = [
+        ("simple_1_phase", "simple", [0.0]),
+        ("simple_2_phases", "simple", [0.0, 90.0]),
+        ("simple_4_phases", "simple", [0.0, 90.0, 180.0, 270.0]),
+        ("simple_24_phases", "simple", list(np.linspace(0.0, 360.0, 24, endpoint=False))),
+        ("energy_model", "energy", [0.0]),
+    ]
+
+    tables = []
+    for idx, (condition, model, phases) in enumerate(conditions):
+        cfg = deepcopy(config)
+        cfg["stimuli"]["gratings"]["phases_deg"] = [float(p) for p in phases]
+        result = run_grating_shift_grid(
+            population,
+            cfg,
+            np.random.default_rng(rng.integers(0, 2**32 - 1) + idx),
+            mapping_config=perfect_mapping_config(),
+            noise_config=noiseless,
+            response_model=model,
+            shifts=shifts,
+        )["summary"]
+        result["condition"] = condition
+        result["drift_deg"] = result["gaze_az_deg"]
+        result["n_phases"] = len(phases)
+        tables.append(result)
+
+    table = pd.concat(tables, ignore_index=True)
+    table.to_csv(paths["tables"] / "grating_phase_sanity_summary.csv", index=False)
+
+    plt.figure(figsize=(7.5, 4.8))
+    sns.lineplot(data=table, x="drift_deg", y="median_abs_delta_po_deg", hue="condition", marker="o")
+    plt.xlabel("Diagonal gaze/FOV drift (deg)")
+    plt.ylabel("Median |ΔPO| (deg)")
+    plt.title("Full-field grating phase sanity check")
+    plt.legend(frameon=False, fontsize=8)
+    savefig(paths["figures"] / "validation_grating_phase_sanity.png")
+    return table
+
+
 def compare_simple_energy(
     population: pd.DataFrame,
     images: np.ndarray,
@@ -511,6 +566,7 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
 
     make_primary_figures(grating_summary, natural_summary, paths)
     make_secondary_figures(population, grating_result, natural_result, paths)
+    phase_sanity = make_grating_phase_sanity(population, config, rng, paths)
 
     decomposition = pd.DataFrame()
     if run_decomp:
@@ -537,7 +593,10 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
     del far_grating
 
     write_text(paths["tables"] / "methods_summary.md", methods_summary_text(config))
-    write_text(paths["tables"] / "interpretation_summary.md", interpretation_text(grating_summary, natural_summary, decomposition))
+    write_text(
+        paths["tables"] / "interpretation_summary.md",
+        interpretation_text(grating_summary, natural_summary, decomposition, phase_sanity),
+    )
 
     return {
         "population": population,
@@ -545,6 +604,7 @@ def run_main(config: dict, *, run_decomp: bool = True) -> dict[str, object]:
         "natural": natural_result,
         "decomposition": decomposition,
         "model_comparison": model_comparison,
+        "phase_sanity": phase_sanity,
         "paths": paths,
     }
 

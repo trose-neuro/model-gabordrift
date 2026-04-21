@@ -27,6 +27,7 @@ def interpretation_text(
     grating_table: pd.DataFrame,
     natural_table: pd.DataFrame,
     decomposition_table: pd.DataFrame | None = None,
+    phase_sanity_table: pd.DataFrame | None = None,
 ) -> str:
     """Generate a compact interpretation from saved summary metrics."""
     far_g = grating_table.assign(radius=grating_table["gaze_az_deg"].abs() + grating_table["gaze_el_deg"].abs())
@@ -41,6 +42,8 @@ def interpretation_text(
         f"The median tuning-strength change was {far_g['median_tuning_strength_change']:.3f}; this distinguishes PO rotation from tuning flattening or sharpening.",
         f"For natural images at the same edge of the grid, population response correlation to baseline was {far_n['population_response_correlation']:.3f}, RDM similarity was {far_n['rdm_similarity_to_baseline']:.3f}, and the median relative per-neuron response change was {far_n['median_relative_response_change']:.3f}.",
         "",
+        "Why can a gaze shift affect PO for full-field gratings at all? Translating an infinite grating does not rotate it; it advances stimulus phase at each RF by Δφ = 2π f (Δa cosθ + Δe sinθ). Therefore a perfectly phase-invariant cell, or a simple-cell response averaged over dense stimulus phases, should show little to no deterministic ΔPO under perfect mapping and no noise. Apparent ΔPO appears when finite phase sampling and rectification let that phase advance modulate different orientations unevenly, or when mapping error and noise perturb the estimated tuning curve.",
+        "",
         "Under this model, gaze matters little when RFs are broad, phase is averaged or an energy model is used, mapping is accurate, and SNR is high. Gaze matters more when RFs are narrow, high-SF units are common, phase-sensitive simple-cell responses are estimated from limited phases, or natural images contain local structure that translates across RF subfields.",
         "",
         "Mapping errors matter when approximate projection, wrong scale, origin offsets, rotation mismatch, or nonlinear distortion produce systematic phase and position errors comparable to the RF subfield scale. Low SNR dominates when repeated-trial averaging and bootstrap intervals show large PO uncertainty even at zero or small gaze offsets.",
@@ -52,6 +55,11 @@ def interpretation_text(
             lines.append(
                 f"- {row.condition}: median |ΔPO| {row.median_abs_delta_po_deg:.2f} deg, natural-image correlation {row.population_response_correlation:.3f}, RDM similarity {row.rdm_similarity_to_baseline:.3f}."
             )
+    if phase_sanity_table is not None and not phase_sanity_table.empty:
+        edge = phase_sanity_table.sort_values("drift_deg").groupby("condition").tail(1)
+        lines.extend(["", "Full-field grating phase sanity check at the largest tested drift:"])
+        for row in edge.sort_values("condition").itertuples(index=False):
+            lines.append(f"- {row.condition}: median |ΔPO| {row.median_abs_delta_po_deg:.2f} deg.")
     lines.append("")
     lines.append(
         "Natural images are considered more gaze-sensitive than gratings here when their population correlation or RDM similarity drops substantially while grating ΔPO remains small. That pattern is expected because translating a structured image can change RF drive without necessarily changing the PO that best fits grating responses."

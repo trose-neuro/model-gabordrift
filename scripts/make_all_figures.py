@@ -46,6 +46,22 @@ def main() -> None:
     if model_path.exists():
         plot_summary_bars(pd.read_csv(model_path), paths["figures"] / "primary_11_simple_vs_energy_summary.png")
 
+    phase_sanity_path = paths["tables"] / "grating_phase_sanity_summary.csv"
+    if phase_sanity_path.exists():
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
+        phase_sanity = pd.read_csv(phase_sanity_path)
+        plt.figure(figsize=(7.5, 4.8))
+        sns.lineplot(data=phase_sanity, x="drift_deg", y="median_abs_delta_po_deg", hue="condition", marker="o")
+        plt.xlabel("Diagonal gaze/FOV drift (deg)")
+        plt.ylabel("Median |ΔPO| (deg)")
+        plt.title("Full-field grating phase sanity check")
+        plt.legend(frameon=False, fontsize=8)
+        from src.plotting import savefig
+
+        savefig(paths["figures"] / "validation_grating_phase_sanity.png")
+
     bridge_path = paths["tables"] / "grating_natural_bridge_summary.csv"
     if bridge_path.exists():
         bridge = pd.read_csv(bridge_path)
