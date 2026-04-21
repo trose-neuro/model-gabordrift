@@ -6,6 +6,16 @@ This project is a reproducible first-pass null model for the question:
 
 The simulation builds a 500 x 500 um two-photon field of view, samples mouse-V1-like Gabor receptive fields, maps cells into visual coordinates with local retinotopy plus jitter, and compares grating tuning with natural-image population responses under global gaze shifts.
 
+## What This Project Tests
+
+The project is designed to separate three mechanisms that can otherwise be conflated:
+
+1. **True deterministic gaze geometry**: what changes when the same RFs view the same stimuli after a global retinal translation.
+2. **Coordinate/mapping error**: what changes when the analysis uses an imperfect visual-coordinate projection.
+3. **SNR-limited estimation**: what changes when noisy or sparse responses make PO estimates unstable.
+
+The central output is `ΔPO`, the circular change in inferred PO relative to the zero-shift baseline. Because orientation is 180-degree periodic, `|ΔPO|` is always the shortest orientation-axis change. For example, a change from 175 degrees to 5 degrees is `|ΔPO| = 10` degrees, not 170 degrees.
+
 ## Conda Environment
 
 All scripts, notebooks, and tests are expected to run after activating the dedicated conda environment named `gaze_v1_sim`.
@@ -68,6 +78,13 @@ conda activate gaze_v1_sim
 python scripts/run_main_simulation.py --config configs/default.yaml
 ```
 
+Recommended first pass:
+
+1. Run `python scripts/run_main_simulation.py --debug`.
+2. Open `results/tables/interpretation_summary.md`.
+3. Inspect `results/figures/validation_grating_phase_sanity.png`.
+4. Run notebooks 01, 02, and 05 before interpreting the full heat maps.
+
 ## Model Summary
 
 Each neuron has:
@@ -90,6 +107,18 @@ For full-field gratings, this distinction is critical. A gaze shift translates t
 
 It does not geometrically rotate the grating. Therefore, with perfect mapping and no noise, a phase-invariant energy model or a densely phase-averaged simple-cell model should show little to no deterministic `ΔPO`. Large `ΔPO` for gratings is interpreted as phase-sensitive estimation, finite phase sampling, mapping error, or SNR-driven instability rather than literal stimulus rotation.
 
+The debug run includes this explicit sanity check:
+
+| Condition | Median `|ΔPO|` at 10 degree diagonal drift |
+| --- | ---: |
+| energy model | 0.00 deg |
+| simple cell, 24 phases | about 0.02 deg |
+| simple cell, 4 phases | about 0.94 deg |
+| simple cell, 2 phases | about 11.58 deg |
+| simple cell, 1 phase | about 19.26 deg |
+
+This is the intended behavior. It shows that the model is not claiming a translated full-field grating rotates. Instead, apparent grating `ΔPO` comes from phase-sensitive response sampling and estimation.
+
 ## Decomposition
 
 The central decomposition separates:
@@ -100,6 +129,18 @@ The central decomposition separates:
 4. **Gaze + mapping error + noise**: combined experimental failure modes.
 
 This distinction is important because apparent preferred-orientation drift can come from actual deterministic phase/geometry, coordinate mismatch, or noisy estimates from limited repeats.
+
+The decomposition table is saved at:
+
+```text
+results/tables/decomposition_summary.csv
+```
+
+The generated summary text is saved at:
+
+```text
+results/tables/interpretation_summary.md
+```
 
 ## Natural Images
 
@@ -149,16 +190,28 @@ Generated outputs are written to:
 
 Primary figures include heat maps for median and 90th percentile `|ΔPO|`, fraction of neurons above the `|ΔPO|` threshold, circular-variance change, tuning-strength change, natural-image response correlation, RDM similarity, response-change magnitude, grating versus natural-image summaries, decomposition summaries, simple-cell versus energy-model summaries, and a full-field grating phase-sanity check.
 
+Important result files:
+
+- `results/tables/grating_phase_sanity_summary.csv`
+- `results/tables/drift_sanity_summary.csv`
+- `results/tables/grating_shift_summary.csv`
+- `results/tables/natural_image_shift_summary.csv`
+- `results/tables/decomposition_summary.csv`
+- `results/figures/validation_grating_phase_sanity.png`
+- `results/figures/drift_sanity_median_abs_delta_po.png`
+- `results/figures/primary_06_natural_population_correlation.png`
+- `results/figures/primary_07_natural_rdm_similarity.png`
+
 ## Notebooks
 
 Run notebooks only after activating `gaze_v1_sim`.
 
-- `01_model_setup_and_sampling.ipynb`: cortical sampling, retinotopy, mapping, RF distributions, RF examples
-- `02_grating_tuning_and_po_estimation.ipynb`: grating responses, PO estimation, circular variance, simple versus energy model, and the phase-sampling sanity check explaining why full-field gratings can show apparent `ΔPO`
-- `03_gaze_shift_heatmaps.ipynb`: grating gaze-shift heat maps and example tuning changes
-- `04_natural_images_comparison.ipynb`: natural-image responses, correlations, RDMs, grating comparison
-- `05_noise_and_mapping_error_effects.ipynb`: decomposition of geometry, mapping error, and SNR
-- `06_parameter_sweeps_and_interpretation.ipynb`: RF, SF, jitter, mapping, and SNR sweeps
+- `01_model_setup_and_sampling.ipynb`: explains the simulated FOV, sampled RF parameters, retinotopy, coordinate mapping, and RF examples.
+- `02_grating_tuning_and_po_estimation.ipynb`: explains grating phase advance, PO estimation, tuning curves, simple-cell versus energy-model behavior, and the phase-sampling sanity check.
+- `03_gaze_shift_heatmaps.ipynb`: shows grating `ΔPO`, circular-variance, and tuning-strength heat maps, plus neuron-level sensitivity examples.
+- `04_natural_images_comparison.ipynb`: shows image inputs, natural-image population correlations, RDM similarity, response matrices, and grating-versus-natural bridge plots.
+- `05_noise_and_mapping_error_effects.ipynb`: shows the four-way decomposition, mapping-error fields, and bootstrap PO uncertainty under different SNR regimes.
+- `06_parameter_sweeps_and_interpretation.ipynb`: ranks sensitivity across RF size, jitter, mapping error, and SNR assumptions.
 
 ## Interpretation Targets
 
@@ -172,3 +225,7 @@ The generated interpretation summary addresses:
 6. which assumptions make gaze effects large enough to matter for mouse V1 experiments
 
 This is not a full biological model of mouse V1 L2/3. A single Gabor RF is a deliberate simplification used to make geometry, mapping error, and estimation variability explicit and testable.
+
+## Bottom Line
+
+Under this null model, natural-image responses can be highly gaze-sensitive because translating an image changes the local structure falling on each RF. Full-field gratings are different: a gaze shift changes phase, not orientation. Grating `ΔPO` should therefore be interpreted as an estimation consequence of phase sensitivity, sparse phase sampling, mapping error, or low SNR unless it survives the phase-invariant and dense-phase sanity checks.
