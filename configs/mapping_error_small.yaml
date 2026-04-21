@@ -1,0 +1,9 @@
+mapping:
+  mode: approximate
+  error:
+    name: slight
+    origin_offset_deg: [0.15, -0.10]
+    scale: [1.015, 0.990]
+    rotation_deg: 1.0
+    anisotropy: [1.02, 0.98]
+    nonlinear: 0.0008

@@ -1,0 +1,6 @@
+rf:
+  sigma_deg:
+    median_x: 1.4
+    median_y: 0.7
+    sigma_log: 0.22
+  orientation_bandwidth_deg: 24.0

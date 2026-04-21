@@ -1,0 +1,21 @@
+name: gaze_v1_sim
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy>=1.26
+  - scipy>=1.11
+  - pandas>=2.0
+  - matplotlib>=3.8
+  - seaborn>=0.13
+  - pyyaml>=6.0
+  - jupyterlab>=4.0
+  - notebook>=7.0
+  - ipykernel>=6.0
+  - pytest>=8.0
+  - tqdm>=4.66
+  - scikit-image>=0.22
+  - xarray>=2024.1
+  - pip
+  - pip:
+      - -e .

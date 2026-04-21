@@ -1,0 +1,9 @@
+mapping:
+  mode: exact
+  error:
+    name: perfect
+    origin_offset_deg: [0.0, 0.0]
+    scale: [1.0, 1.0]
+    rotation_deg: 0.0
+    anisotropy: [1.0, 1.0]
+    nonlinear: 0.0

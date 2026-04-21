@@ -1,0 +1,4 @@
+retinotopy:
+  jitter_sd_deg:
+    azimuth: 3.0
+    elevation: 3.0
