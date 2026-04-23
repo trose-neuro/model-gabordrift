@@ -213,6 +213,8 @@ Primary figures include heat maps for median and 90th percentile `|ΔPO|`, fract
 
 Additional explanatory figures compare weekly trajectories for static gratings, moving gratings, and natural images under separate gaze-only, mapping-error, circuit-drift-only, and combined hypotheses.
 
+The geometry-only spherical-mapping notebook separately tests whether screen-distance or planar-projection mistakes can rotate local image orientation before any neural response model is involved.
+
 Important result files:
 
 - `results/tables/grating_phase_sanity_summary.csv`
@@ -223,6 +225,7 @@ Important result files:
 - `results/tables/natural_image_shift_summary.csv`
 - `results/tables/decomposition_summary.csv`
 - `results/tables/longitudinal_hypothesis_summary.csv`
+- `results/tables/geometry_only_wrong_spherical_mapping_artifact_manifest.csv`
 - `results/figures/scheme_grating_gaze_rf_delta_po.png`
 - `results/figures/scheme_moving_grating_gaze_rf_delta_po.png`
 - `results/figures/validation_grating_phase_sanity.png`
@@ -233,6 +236,8 @@ Important result files:
 - `results/figures/primary_07_natural_rdm_similarity.png`
 - `results/figures/primary_12_longitudinal_hypothesis_panels.png`
 - `results/figures/primary_13_longitudinal_gaze_vs_similarity.png`
+- `results/figures/geometry_only_wrong_spherical_mapping_orientation_error_surfaces.png`
+- `results/figures/geometry_only_wrong_spherical_mapping_session_diagonal_drift_curves.png`
 
 ## Notebooks
 
@@ -244,6 +249,7 @@ Run notebooks only after activating `gaze_v1_sim`.
 - `04_natural_images_comparison.ipynb`: shows image inputs, natural-image population correlations, RDM similarity, response matrices, and grating-versus-natural bridge plots.
 - `05_noise_and_mapping_error_effects.ipynb`: shows the four-way decomposition, mapping-error fields, and bootstrap PO uncertainty under different SNR regimes.
 - `06_parameter_sweeps_and_interpretation.ipynb`: ranks sensitivity across RF size, jitter, mapping error, and SNR assumptions.
+- `07_geometry_only_wrong_spherical_mapping.ipynb`: isolates screen-geometry errors from phase-sensitive neural responses and quantifies orientation distortion from wrong spherical correction or planar no-correction.
 
 Notebook 06 also includes a weekly hypothesis section that overlays static gratings, moving gratings, and natural images against measured cumulative gaze drift so optical and circuit-drift explanations can be compared directly.
 
